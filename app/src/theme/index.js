@@ -18,6 +18,14 @@ export const theme = {
     round: 999,
   },
 
+  radii: {
+    xs: 2,
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
+  },
+
   // App-specific theme constants
   habit: {
     cardHeight: 90,

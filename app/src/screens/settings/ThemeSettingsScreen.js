@@ -172,25 +172,25 @@ const ThemeSettingsScreen = ({ navigation }) => {
       flex: 1,
     },
     contentContainer: {
-      padding: theme.spacing.md,
+      padding: theme.spacing.medium,
     },
     card: {
-      marginBottom: theme.spacing.md,
+      marginBottom: theme.spacing.medium,
     },
     cardTitle: {
-      marginBottom: theme.spacing.sm,
+      marginBottom: theme.spacing.small,
       textAlign: "center",
     },
     cardSubtitle: {
       textAlign: "center",
       color: theme.colors.gray,
-      marginBottom: theme.spacing.md,
+      marginBottom: theme.spacing.medium,
     },
     switchItem: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: theme.spacing.md,
+      marginBottom: theme.spacing.medium,
     },
     switchInfo: {
       flex: 1,
@@ -205,9 +205,9 @@ const ThemeSettingsScreen = ({ navigation }) => {
     },
     themeOption: {
       width: "48%",
-      marginBottom: theme.spacing.md,
+      marginBottom: theme.spacing.medium,
       alignItems: "center",
-      padding: theme.spacing.sm,
+      padding: theme.spacing.small,
       borderRadius: theme.radii.md,
       borderWidth: 2,
       borderColor: "transparent",
