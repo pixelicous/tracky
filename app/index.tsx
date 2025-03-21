@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { LogBox, StatusBar } from "react-native";
-import { Provider } from "react-redux";
-import { store } from "./src/store";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
@@ -16,6 +14,7 @@ import {
   setOnboardingComplete,
 } from "./src/store/slices/uiSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { store } from "./src/store";
 
 // Ignore specific warnings
 LogBox.ignoreLogs([
@@ -85,14 +84,9 @@ export default function App() {
   }
 
   return (
-    <Provider store={store}>
-      <SafeAreaProvider>
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor={theme.colors.white}
-        />
-        <Navigation />
-      </SafeAreaProvider>
-    </Provider>
+    <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.white} />
+      <Navigation />
+    </SafeAreaProvider>
   );
 }
