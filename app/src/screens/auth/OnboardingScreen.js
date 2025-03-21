@@ -19,33 +19,33 @@ import { theme } from "../../theme";
 const { width, height } = Dimensions.get("window");
 
 const onboardingData = [
-  // {
-  //   id: "1",
-  //   title: "Track Your Habits",
-  //   description:
-  //     "Create and track your daily habits with our fun and engaging interface",
-  //   animation: require("../../../assets/animations/habit-tracking.json"),
-  // },
-  // {
-  //   id: "2",
-  //   title: "Build Consistency",
-  //   description: "Maintain your streaks and watch your progress grow over time",
-  //   animation: require("../../../assets/animations/streak-growth.json"),
-  // },
-  // {
-  //   id: "3",
-  //   title: "Achieve Your Goals",
-  //   description:
-  //     "Set goals, earn rewards, and become the best version of yourself",
-  //   animation: require("../../../assets/animations/achievement.json"),
-  // },
-  // {
-  //   id: "4",
-  //   title: "Connect with Friends",
-  //   description:
-  //     "Share your progress and challenge friends to stay motivated together",
-  //   animation: require("../../../assets/animations/friends.json"),
-  // },
+  {
+    id: "1",
+    title: "Track Your Habits",
+    description:
+      "Create and track your daily habits with our fun and engaging interface",
+    animation: require("../../../assets/animations/flag.json"),
+  },
+  {
+    id: "2",
+    title: "Build Consistency",
+    description: "Maintain your streaks and watch your progress grow over time",
+    animation: require("../../../assets/animations/flag.json"),
+  },
+  {
+    id: "3",
+    title: "Achieve Your Goals",
+    description:
+      "Set goals, earn rewards, and become the best version of yourself",
+    animation: require("../../../assets/animations/flag.json"),
+  },
+  {
+    id: "4",
+    title: "Connect with Friends",
+    description:
+      "Share your progress and challenge friends to stay motivated together",
+    animation: require("../../../assets/animations/flag.json"),
+  },
 ];
 
 const OnboardingScreen = ({ navigation }) => {
