@@ -11,7 +11,7 @@ import {
   orderBy,
   serverTimestamp,
 } from "firebase/firestore";
-import { firestore } from "../../services/api/firebase";
+import { db } from "../../services/api/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Async thunks for habits
@@ -23,7 +23,7 @@ export const fetchHabits = createAsyncThunk(
 
       // Get habits from Firestore
       const habitsQuery = query(
-        collection(firestore, "habits"),
+        collection(db, "habits"),
         where("userId", "==", uid),
         where("isArchived", "==", false),
         orderBy("createdAt", "desc")
@@ -64,7 +64,9 @@ export const createHabit = createAsyncThunk(
   "habits/createHabit",
   async (habitData, { getState, rejectWithValue }) => {
     try {
+      console.log("Creating habit:", habitData);
       const { uid } = getState().auth.user;
+      console.log("User ID:", uid);
 
       const newHabit = {
         ...habitData,
@@ -79,15 +81,20 @@ export const createHabit = createAsyncThunk(
         },
       };
 
-      const docRef = await addDoc(collection(firestore, "habits"), newHabit);
+      console.log("New habit object:", newHabit);
+
+      const docRef = await addDoc(collection(db, "habits"), newHabit);
+
+      console.log("Document reference:", docRef);
 
       return {
         id: docRef.id,
         ...newHabit,
-        createdAt: new Date().toISOString(), // For consistent format in Redux
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
     } catch (error) {
+      console.error("Error creating habit:", error);
       return rejectWithValue(error.message);
     }
   }
@@ -218,7 +225,7 @@ export const completeHabit = createAsyncThunk(
             stats: {
               ...getState().auth.user.stats,
               totalHabitsCompleted:
-                getState().auth.user.stats.totalHabitsCompleted + a,
+                getState().auth.user.stats.totalHabitsCompleted + 1,
               currentStreak: getState().auth.user.stats.currentStreak + 1,
               xpPoints: getState().auth.user.stats.xpPoints + 10,
             },
@@ -299,8 +306,9 @@ const habitsSlice = createSlice({
           if (
             habit.frequency.type === "weekly" &&
             habit.frequency.days.includes(today)
-          )
+          ) {
             return true;
+          }
           return false;
         });
       })
@@ -353,15 +361,11 @@ const habitsSlice = createSlice({
           if (
             habit.frequency.type === "weekly" &&
             habit.frequency.days.includes(today)
-          )
+          ) {
             return true;
+          }
           return false;
         });
-
-        // Update current habit if it was the one updated
-        if (state.currentHabit && state.currentHabit.id === action.payload.id) {
-          state.currentHabit = { ...state.currentHabit, ...action.payload };
-        }
       })
       .addCase(updateHabit.rejected, (state, action) => {
         state.loading = false;
@@ -396,7 +400,7 @@ const habitsSlice = createSlice({
           };
         }
       })
-      .addCase(completeHabit.rejected, (state, action) => {
+      .addCase(completeHabit.rejected, (state) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -420,7 +424,7 @@ const habitsSlice = createSlice({
           state.currentHabit = null;
         }
       })
-      .addCase(deleteHabit.rejected, (state, action) => {
+      .addCase(deleteHabit.rejected, (state) => {
         state.loading = false;
         state.error = action.payload;
       });
