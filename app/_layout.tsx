@@ -1,13 +1,12 @@
 import { Stack } from "expo-router";
-import PremiumFeaturesScreen from "./src/screens/premium/PremiumFeaturesScreen";
+import RootNavigator from "./src/navigation";
+import { Provider } from "react-redux";
+import { store } from "./src/store";
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen
-        name="src/screens/premium/PremiumFeaturesScreen"
-        options={{ title: "Premium Features" }}
-      />
-    </Stack>
+    <Provider store={store}>
+      <RootNavigator />
+    </Provider>
   );
 }
