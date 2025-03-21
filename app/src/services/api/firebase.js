@@ -1,53 +1,66 @@
-import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  initializeAuth,
-  getReactNativePersistence,
-  connectAuthEmulator,
-} from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
-import { getStorage, connectStorageEmulator } from "firebase/storage";
-import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// firebase.config.js
 import Constants from "expo-constants";
+import { initializeApp } from "firebase/app";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
-// Firebase configuration
-// In a real app, these would be in environment variables
-const firebaseConfig = {
-  apiKey: Constants.manifest?.extra?.firebaseApiKey || "YOUR_API_KEY",
-  authDomain:
-    Constants.manifest?.extra?.firebaseAuthDomain || "YOUR_AUTH_DOMAIN",
-  projectId: Constants.manifest?.extra?.firebaseProjectId || "YOUR_PROJECT_ID",
-  storageBucket:
-    Constants.manifest?.extra?.firebaseStorageBucket || "YOUR_STORAGE_BUCKET",
-  messagingSenderId:
-    Constants.manifest?.extra?.firebaseMessagingSenderId ||
-    "YOUR_MESSAGING_SENDER_ID",
-  appId: Constants.manifest?.extra?.firebaseAppId || "YOUR_APP_ID",
-  measurementId:
-    Constants.manifest?.extra?.firebaseMeasurementId || "YOUR_MEASUREMENT_ID",
-};
+// Get environment
+const env = Constants.expoConfig?.extra?.env || "development";
+
+// Firebase config settings
+let firebaseConfig;
+
+if (env === "development") {
+  // Use dummy values for emulator
+  firebaseConfig = {
+    apiKey: "demo-api-key",
+    authDomain: "demo-app.firebaseapp.com",
+    projectId: "demo-app",
+    storageBucket: "demo-app.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef123456789",
+  };
+  console.log("🔥 Using Firebase Emulators with dummy config");
+} else {
+  // Use real config values for production/test
+  firebaseConfig = {
+    apiKey: Constants.expoConfig?.extra?.firebaseApiKey,
+    authDomain: Constants.expoConfig?.extra?.firebaseAuthDomain,
+    projectId: Constants.expoConfig?.extra?.firebaseProjectId,
+    storageBucket: Constants.expoConfig?.extra?.firebaseStorageBucket,
+    messagingSenderId: Constants.expoConfig?.extra?.firebaseMessagingSenderId,
+    appId: Constants.expoConfig?.extra?.firebaseAppId,
+  };
+  console.log("✅ Using Live Firebase Services");
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth with AsyncStorage persistence
-initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+// Initialize services
+const auth = getAuth(app);
+const db = getFirestore(app);
+const functions = getFunctions(app);
+const storage = getStorage(app);
 
-// Export Firebase services
-export const auth = getAuth(app);
-export const firestore = getFirestore(app);
-export const storage = getStorage(app);
-export const functions = getFunctions(app);
+// Enable Emulators in Development
+if (env === "development") {
+  // Your local IP address - change if needed
+  const localEmulatorHost = "192.168.0.125";
 
-// Connect to emulators if running in development
-if (process.env.NODE_ENV === "development") {
-  connectAuthEmulator(auth, "http://192.168.0.125:9099");
-  connectFirestoreEmulator(firestore, "192.168.0.125", 8080);
-  connectStorageEmulator(storage, "192.168.0.125", 9199);
-  connectFunctionsEmulator(functions, "192.168.0.125", 5001);
+  // Connect to emulators
+  connectAuthEmulator(auth, `http://${localEmulatorHost}:9099`);
+  connectFirestoreEmulator(db, localEmulatorHost, 8080);
+  connectFunctionsEmulator(functions, localEmulatorHost, 5001);
+  connectStorageEmulator(storage, localEmulatorHost, 9199);
+
+  console.log(`🔥 Connected to emulators at ${localEmulatorHost}`);
 }
 
+// Export initialized services for use in the app
+export { app, auth, db, functions, storage };
+
+// For backward compatibility
 export default app;
