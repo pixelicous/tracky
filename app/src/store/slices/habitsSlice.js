@@ -5,6 +5,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -36,6 +37,12 @@ export const fetchHabits = createAsyncThunk(
         habits.push({
           id: doc.id,
           ...doc.data(),
+          createdAt: doc.data().createdAt
+            ? doc.data().createdAt.toDate().toISOString()
+            : null,
+          updatedAt: doc.data().updatedAt
+            ? doc.data().updatedAt.toDate().toISOString()
+            : null,
         });
       });
 
@@ -87,12 +94,20 @@ export const createHabit = createAsyncThunk(
 
       console.log("Document reference:", docRef);
 
-      return {
+      const newHabitResponse = {
         id: docRef.id,
         ...newHabit,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+      // Update cached habits in AsyncStorage
+      const cachedHabits = await AsyncStorage.getItem(`habits_${uid}`);
+      let habits = cachedHabits ? JSON.parse(cachedHabits) : [];
+      habits = [newHabitResponse, ...habits];
+      await AsyncStorage.setItem(`habits_${uid}`, JSON.stringify(habits));
+
+      return newHabitResponse;
     } catch (error) {
       console.error("Error creating habit:", error);
       return rejectWithValue(error.message);
@@ -104,18 +119,25 @@ export const updateHabit = createAsyncThunk(
   "habits/updateHabit",
   async ({ id, habitData }, { rejectWithValue }) => {
     try {
-      const habitRef = doc(firestore, "habits", id);
+      const habitRef = doc(db, "habits", id);
 
       await updateDoc(habitRef, {
         ...habitData,
         updatedAt: serverTimestamp(),
       });
 
-      return {
-        id,
-        ...habitData,
-        updatedAt: new Date().toISOString(),
-      };
+      // Fetch the updated habit
+      const docSnap = await getDoc(habitRef);
+      if (docSnap.exists()) {
+        const updatedHabit = {
+          id: docSnap.id,
+          ...docSnap.data(),
+          updatedAt: new Date().toISOString(),
+        };
+        return updatedHabit;
+      } else {
+        return rejectWithValue("Habit not found");
+      }
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -126,15 +148,18 @@ export const completeHabit = createAsyncThunk(
   "habits/completeHabit",
   async ({ id, date, count = 1 }, { getState, dispatch, rejectWithValue }) => {
     try {
-      const habitRef = doc(firestore, "habits", id);
+      console.log("completeHabit thunk started", { id, date, count });
+      const habitRef = doc(db, "habits", id);
       const habits = getState().habits.items;
       const habit = habits.find((h) => h.id === id);
+      console.log("Found habit:", habit);
 
       if (!habit) {
         return rejectWithValue("Habit not found");
       }
 
       const dateStr = date || new Date().toISOString().split("T")[0];
+      console.log("dateStr:", dateStr);
       const currentDate = new Date();
       const yesterday = new Date(currentDate);
       yesterday.setDate(currentDate.getDate() - 1);
@@ -155,6 +180,9 @@ export const completeHabit = createAsyncThunk(
           "progress.history": newHistory,
           updatedAt: serverTimestamp(),
         });
+        console.log(
+          "Habit history updated in Firestore (already completed today)"
+        );
 
         return {
           id,
@@ -203,11 +231,23 @@ export const completeHabit = createAsyncThunk(
         "progress.history": newHistory,
         updatedAt: serverTimestamp(),
       });
+      console.log("Habit progress updated in Firestore", {
+        newStreak,
+        lastCompleted: currentDate.toISOString(),
+        newHistory,
+      });
 
       // If streak was incremented, update user stats
       if (wasStreakIncremented) {
         const { uid } = getState().auth.user;
-        const userRef = doc(firestore, "users", uid);
+        console.log("Updating user stats for UID:", uid);
+        const userRef = doc(db, "users", uid);
+        const userDoc = await getDoc(userRef);
+
+        if (!userDoc.exists()) {
+          console.error("User document not found for UID:", uid);
+          return rejectWithValue("User document not found");
+        }
 
         // Need to import increment
         const { increment } = require("firebase/firestore");
@@ -243,6 +283,14 @@ export const completeHabit = createAsyncThunk(
         streakIncremented: wasStreakIncremented,
       };
     } catch (error) {
+      console.error("Error completing habit:", error);
+      if (error.code === "NOT_FOUND") {
+        console.error(
+          "User document not found for UID:",
+          getState().auth.user.uid
+        );
+        return rejectWithValue("User document not found");
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -250,15 +298,22 @@ export const completeHabit = createAsyncThunk(
 
 export const deleteHabit = createAsyncThunk(
   "habits/deleteHabit",
-  async (id, { rejectWithValue }) => {
+  async (id, { rejectWithValue, dispatch }) => {
+    console.log("deleteHabit thunk started", id);
     try {
       // Instead of actually deleting, we archive the habit
-      const habitRef = doc(firestore, "habits", id);
+      const habitRef = doc(db, "habits", id);
+      console.log("Habit ref:", habitRef);
 
       await updateDoc(habitRef, {
         isArchived: true,
         updatedAt: serverTimestamp(),
       });
+      console.log("Habit archived successfully");
+
+      // Dispatch fetchHabits to refresh the list
+      console.log("Dispatching fetchHabits after archiving");
+      dispatch(fetchHabits());
 
       return id;
     } catch (error) {
@@ -412,11 +467,12 @@ const habitsSlice = createSlice({
       })
       .addCase(deleteHabit.fulfilled, (state, action) => {
         state.loading = false;
+        const deletedHabitId = action.payload;
         state.items = state.items.filter(
-          (habit) => habit.id !== action.payload
+          (habit) => habit.id !== deletedHabitId
         );
         state.dailyHabits = state.dailyHabits.filter(
-          (habit) => habit.id !== action.payload
+          (habit) => habit.id !== deletedHabitId
         );
 
         // Clear current habit if it was the one deleted

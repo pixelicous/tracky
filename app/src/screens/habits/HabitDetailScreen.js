@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +18,11 @@ import {
   eachDayOfInterval,
   getDay,
 } from "date-fns";
-import { completeHabit, deleteHabit } from "../../store/slices/habitsSlice";
+import {
+  completeHabit,
+  deleteHabit,
+  fetchHabits,
+} from "../../store/slices/habitsSlice";
 import { Card, Container, Button, Modal } from "../../components/common";
 import {
   Title,
@@ -34,6 +39,7 @@ const HabitDetailScreen = ({ route, navigation }) => {
   const { habit: initialHabit } = route.params;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [refreshing, setRefreshing] = useState(false);
 
   const dispatch = useDispatch();
   const { items: habits } = useSelector((state) => state.habits);
@@ -291,152 +297,170 @@ const HabitDetailScreen = ({ route, navigation }) => {
   const isCompletedToday =
     habit.progress?.history && habit.progress.history[today];
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    dispatch(fetchHabits())
+      .unwrap()
+      .finally(() => {
+        setRefreshing(false);
+      });
+  }, [dispatch]);
+
   return (
-    <Container scrollable>
-      {/* Habit Information Card */}
-      <Card style={styles.infoCard}>
-        <View style={styles.habitHeader}>
-          <View
-            style={[
-              styles.iconContainer,
-              { backgroundColor: `${habit.color}20` },
-            ]}
-          >
-            {habit.icon ? (
-              <Ionicons name={habit.icon} size={30} color={habit.color} />
-            ) : (
-              getIconByHabitCategory(habit.category, 30, habit.color)
-            )}
-          </View>
-
-          <View style={styles.habitInfo}>
-            <Title style={styles.habitTitle}>{habit.title}</Title>
-
-            {habit.description && (
-              <Body style={styles.habitDescription}>{habit.description}</Body>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailItem}>
-            <Caption style={styles.detailLabel}>Frequency</Caption>
-            <Body>{renderFrequencyText()}</Body>
-          </View>
-
-          <View style={styles.detailItem}>
-            <Caption style={styles.detailLabel}>Reminders</Caption>
-            <Body>{renderRemindersText()}</Body>
-          </View>
-
-          <View style={styles.detailItem}>
-            <Caption style={styles.detailLabel}>Created</Caption>
-            <Body>
-              {habit.createdAt
-                ? format(new Date(habit.createdAt), "MMM d, yyyy")
-                : "Unknown"}
-            </Body>
-          </View>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <Button
-            title={isCompletedToday ? "Completed Today" : "Mark as Complete"}
-            onPress={handleComplete}
-            type={isCompletedToday ? "secondary" : "primary"}
-            fullWidth
-            icon={
-              isCompletedToday ? (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={20}
-                  color={theme.colors.white}
-                />
-              ) : null
-            }
-          />
-        </View>
-      </Card>
-
-      {/* Streak Card */}
-      <Card style={styles.streakCard}>
-        <View style={styles.streakHeader}>
-          <Subheading>Current Streak</Subheading>
-
-          <StreakIndicator count={currentStreak} size="large" />
-        </View>
-
-        <View style={styles.streakDetails}>
-          <View style={styles.streakDetailItem}>
-            <Body style={styles.streakDetailValue}>
-              {currentStreak} {currentStreak === 1 ? "day" : "days"}
-            </Body>
-            <Caption>Current Streak</Caption>
-          </View>
-
-          <View style={styles.streakDetailItem}>
-            <Body style={styles.streakDetailValue}>
-              {habit.progress?.lastCompleted
-                ? formatCompletionDate(habit.progress.lastCompleted)
-                : "Never"}
-            </Body>
-            <Caption>Last Completed</Caption>
-          </View>
-        </View>
-      </Card>
-
-      {/* Calendar Card */}
-      <Card style={styles.calendarCard}>
-        <Subheading style={styles.calendarTitle}>Completion History</Subheading>
-
-        <View style={styles.completionRateContainer}>
-          <ProgressCircle
-            size={60}
-            strokeWidth={8}
-            progress={monthCompletionRate}
-            color={theme.colors.primary}
-          >
-            <Body style={styles.completionRateText}>
-              {Math.round(monthCompletionRate * 100)}%
-            </Body>
-          </ProgressCircle>
-
-          <View style={styles.completionRateInfo}>
-            <Body>Monthly Completion Rate</Body>
-            <Caption>For {format(selectedMonth, "MMMM yyyy")}</Caption>
-          </View>
-        </View>
-
-        {renderCalendarHeatmap()}
-      </Card>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        visible={confirmDelete}
-        title="Delete Habit"
-        onClose={() => setConfirmDelete(false)}
+    <Container>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-        <Body style={styles.deleteModalText}>
-          Are you sure you want to delete this habit? This action cannot be
-          undone.
-        </Body>
+        {/* Habit Information Card */}
+        <Card style={styles.infoCard}>
+          <View style={styles.habitHeader}>
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: `${habit.color}20` },
+              ]}
+            >
+              {habit.icon ? (
+                <Ionicons name={habit.icon} size={30} color={habit.color} />
+              ) : (
+                getIconByHabitCategory(habit.category, 30, habit.color)
+              )}
+            </View>
 
-        <View style={styles.deleteModalButtons}>
-          <Button
-            title="Cancel"
-            onPress={() => setConfirmDelete(false)}
-            type="outline"
-            style={styles.deleteModalButton}
-          />
+            <View style={styles.habitInfo}>
+              <Title style={styles.habitTitle}>{habit.title}</Title>
 
-          <Button
-            title="Delete"
-            onPress={handleDelete}
-            type="secondary"
-            style={styles.deleteModalButton}
-          />
-        </View>
-      </Modal>
+              {habit.description && (
+                <Body style={styles.habitDescription}>{habit.description}</Body>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailItem}>
+              <Caption style={styles.detailLabel}>Frequency</Caption>
+              <Body>{renderFrequencyText()}</Body>
+            </View>
+
+            <View style={styles.detailItem}>
+              <Caption style={styles.detailLabel}>Reminders</Caption>
+              <Body>{renderRemindersText()}</Body>
+            </View>
+
+            <View style={styles.detailItem}>
+              <Caption style={styles.detailLabel}>Created</Caption>
+              <Body>
+                {habit.createdAt
+                  ? format(new Date(habit.createdAt), "MMM d, yyyy")
+                  : "Unknown"}
+              </Body>
+            </View>
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <Button
+              title={isCompletedToday ? "Completed Today" : "Mark as Complete"}
+              onPress={handleComplete}
+              type={isCompletedToday ? "secondary" : "primary"}
+              fullWidth
+              icon={
+                isCompletedToday ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={theme.colors.white}
+                  />
+                ) : null
+              }
+            />
+          </View>
+        </Card>
+
+        {/* Streak Card */}
+        <Card style={styles.streakCard}>
+          <View style={styles.streakHeader}>
+            <Subheading>Current Streak</Subheading>
+
+            <StreakIndicator count={currentStreak} size="large" />
+          </View>
+
+          <View style={styles.streakDetails}>
+            <View style={styles.streakDetailItem}>
+              <Body style={styles.streakDetailValue}>
+                {currentStreak} {currentStreak === 1 ? "day" : "days"}
+              </Body>
+              <Caption>Current Streak</Caption>
+            </View>
+
+            <View style={styles.streakDetailItem}>
+              <Body style={styles.streakDetailValue}>
+                {habit.progress?.lastCompleted
+                  ? formatCompletionDate(habit.progress.lastCompleted)
+                  : "Never"}
+              </Body>
+              <Caption>Last Completed</Caption>
+            </View>
+          </View>
+        </Card>
+
+        {/* Calendar Card */}
+        <Card style={styles.calendarCard}>
+          <Subheading style={styles.calendarTitle}>
+            Completion History
+          </Subheading>
+
+          <View style={styles.completionRateContainer}>
+            <ProgressCircle
+              size={60}
+              strokeWidth={8}
+              progress={monthCompletionRate}
+              color={theme.colors.primary}
+            >
+              <Body style={styles.completionRateText}>
+                {Math.round(monthCompletionRate * 100)}%
+              </Body>
+            </ProgressCircle>
+
+            <View style={styles.completionRateInfo}>
+              <Body>Monthly Completion Rate</Body>
+              <Caption>For {format(selectedMonth, "MMMM yyyy")}</Caption>
+            </View>
+          </View>
+
+          {renderCalendarHeatmap()}
+        </Card>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          visible={confirmDelete}
+          title="Delete Habit"
+          onClose={() => setConfirmDelete(false)}
+        >
+          <Body style={styles.deleteModalText}>
+            Are you sure you want to delete this habit? This action cannot be
+            undone.
+          </Body>
+
+          <View style={styles.deleteModalButtons}>
+            <Button
+              title="Cancel"
+              onPress={() => setConfirmDelete(false)}
+              type="outline"
+              style={styles.deleteModalButton}
+            />
+
+            <Button
+              title="Delete"
+              onPress={handleDelete}
+              type="secondary"
+              style={styles.deleteModalButton}
+            />
+          </View>
+        </Modal>
+      </ScrollView>
     </Container>
   );
 };
@@ -590,6 +614,9 @@ const styles = StyleSheet.create({
   deleteModalButton: {
     flex: 1,
     marginHorizontal: theme.spacing.xs,
+  },
+  scrollContainer: {
+    flexGrow: 1,
   },
 });
 

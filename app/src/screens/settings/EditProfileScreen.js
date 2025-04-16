@@ -84,7 +84,6 @@ const EditProfileScreen = ({ navigation }) => {
         dailyReminder,
         reminderTime,
       },
-      updatedAt: new Date().toISOString(),
     };
 
     try {

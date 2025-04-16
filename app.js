@@ -11,7 +11,7 @@ import { theme } from "./app/src/theme";
 import Navigation from "./app/src/navigation";
 import { auth } from "./app/src/services/api/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { setUser } from "./app/src/store/slices/authSlice";
+import { loadUserFromStorage } from "./app/src/store/slices/authSlice";
 import {
   setFirstLaunch,
   setOnboardingComplete,
@@ -30,6 +30,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const [userLoaded, setUserLoaded] = useState(false);
 
   useEffect(() => {
     async function prepareApp() {
@@ -58,9 +59,15 @@ export default function App() {
         );
         store.dispatch(setOnboardingComplete(onboardingComplete === "true"));
 
+        // Load user from storage
+        await store.dispatch(loadUserFromStorage());
+        setUserLoaded(true);
+
         // Set up auth listener
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          store.dispatch(setUser(user));
+          if (user && !store.getState().auth.user) {
+            store.dispatch(loadUserFromStorage());
+          }
         });
 
         // Simulate some loading time for demo purposes

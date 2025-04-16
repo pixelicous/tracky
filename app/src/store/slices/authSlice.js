@@ -13,7 +13,8 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, firestore } from "../../services/api/firebase";
+import { auth, db } from "../../services/api/firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Async thunks for authentication
 export const registerUser = createAsyncThunk(
@@ -32,7 +33,7 @@ export const registerUser = createAsyncThunk(
       await firebaseUpdateProfile(user, { displayName });
 
       // Create user document in Firestore
-      const userDocRef = doc(firestore, "users", user.uid);
+      const userDocRef = doc(db, "users", user.uid);
       await setDoc(userDocRef, {
         uid: user.uid,
         email: user.email,
@@ -65,6 +66,8 @@ export const registerUser = createAsyncThunk(
         friends: [],
       });
 
+      console.log("User document created with ID:", user.uid);
+
       // Return user data
       return {
         uid: user.uid,
@@ -89,7 +92,7 @@ export const signIn = createAsyncThunk(
       const user = userCredential.user;
 
       // Update last active timestamp
-      const userDocRef = doc(firestore, "users", user.uid);
+      const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, {
         lastActive: serverTimestamp(),
       });
@@ -97,20 +100,20 @@ export const signIn = createAsyncThunk(
       // Get user data from Firestore
       const userDoc = await getDoc(userDocRef);
 
+      let userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+      };
+
       if (userDoc.exists()) {
-        return {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
+        userData = {
+          ...userData,
           ...userDoc.data(),
         };
-      } else {
-        return {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-        };
       }
+
+      return userData;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -146,14 +149,33 @@ export const updateUserProfile = createAsyncThunk(
   async (userData, { getState, rejectWithValue }) => {
     try {
       const { uid } = getState().auth.user;
-      const userDocRef = doc(firestore, "users", uid);
+      const userDocRef = doc(db, "users", uid);
 
       await updateDoc(userDocRef, {
-        ...userData,
+        displayName: userData.displayName,
+        bio: userData.bio,
+        preferences: userData.preferences,
         updatedAt: serverTimestamp(),
       });
 
       return userData;
+    } catch (error) {
+      console.error("Error updating profile:", error.message);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const loadUserFromStorage = createAsyncThunk(
+  "auth/loadUserFromStorage",
+  async (_, { rejectWithValue }) => {
+    try {
+      const userData = await AsyncStorage.getItem("user");
+      if (userData) {
+        return JSON.parse(userData);
+      } else {
+        return null;
+      }
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -172,7 +194,7 @@ const authSlice = createSlice({
   reducers: {
     setUser: (state, action) => {
       state.user = action.payload;
-      state.isAuthenticated = !!action.payload;
+      state.isAuthenticated = action.payload !== null;
     },
     clearError: (state) => {
       state.error = null;
@@ -204,6 +226,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        AsyncStorage.setItem("user", JSON.stringify(action.payload));
       })
       .addCase(signIn.rejected, (state, action) => {
         state.isLoading = false;
@@ -218,6 +241,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = null;
         state.isAuthenticated = false;
+        AsyncStorage.removeItem("user");
       })
       .addCase(signOut.rejected, (state, action) => {
         state.isLoading = false;
@@ -246,15 +270,32 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = {
           ...state.user,
+          displayName: action.payload.displayName,
+          bio: action.payload.bio,
           ...action.payload,
         };
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+
+      // Load user from storage
+      .addCase(loadUserFromStorage.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loadUserFromStorage.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = action.payload !== null;
+      })
+      .addCase(loadUserFromStorage.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       });
   },
 });
 
-export const { setUser, clearError } = authSlice.actions;
+export const { clearError, setUser } = authSlice.actions;
 export default authSlice.reducer;

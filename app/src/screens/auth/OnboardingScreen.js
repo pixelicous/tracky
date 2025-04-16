@@ -30,14 +30,14 @@ const onboardingData = [
     id: "2",
     title: "Build Consistency",
     description: "Maintain your streaks and watch your progress grow over time",
-    animation: require("../../../assets/animations/flag.json"),
+    animation: require("../../../assets/animations/consistency.json"),
   },
   {
     id: "3",
     title: "Achieve Your Goals",
     description:
       "Set goals, earn rewards, and become the best version of yourself",
-    animation: require("../../../assets/animations/flag.json"),
+    animation: require("../../../assets/animations/goals.json"),
   },
   {
     id: "4",
