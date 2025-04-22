@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/api/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { updateUserProfile } from "../../store/slices/authSlice";
 
 // Async thunks for habits
 export const fetchHabits = createAsyncThunk(
@@ -152,14 +153,12 @@ export const completeHabit = createAsyncThunk(
       const habitRef = doc(db, "habits", id);
       const habits = getState().habits.items;
       const habit = habits.find((h) => h.id === id);
-      console.log("Found habit:", habit);
 
       if (!habit) {
         return rejectWithValue("Habit not found");
       }
 
       const dateStr = date || new Date().toISOString().split("T")[0];
-      console.log("dateStr:", dateStr);
       const currentDate = new Date();
       const yesterday = new Date(currentDate);
       yesterday.setDate(currentDate.getDate() - 1);
@@ -242,12 +241,6 @@ export const completeHabit = createAsyncThunk(
         const { uid } = getState().auth.user;
         console.log("Updating user stats for UID:", uid);
         const userRef = doc(db, "users", uid);
-        const userDoc = await getDoc(userRef);
-
-        if (!userDoc.exists()) {
-          console.error("User document not found for UID:", uid);
-          return rejectWithValue("User document not found");
-        }
 
         // Need to import increment
         const { increment } = require("firebase/firestore");
@@ -284,13 +277,6 @@ export const completeHabit = createAsyncThunk(
       };
     } catch (error) {
       console.error("Error completing habit:", error);
-      if (error.code === "NOT_FOUND") {
-        console.error(
-          "User document not found for UID:",
-          getState().auth.user.uid
-        );
-        return rejectWithValue("User document not found");
-      }
       return rejectWithValue(error.message);
     }
   }
@@ -314,6 +300,10 @@ export const deleteHabit = createAsyncThunk(
       // Dispatch fetchHabits to refresh the list
       console.log("Dispatching fetchHabits after archiving");
       dispatch(fetchHabits());
+
+      // Clear cached habits in AsyncStorage
+      const { uid } = getState().auth.user;
+      await AsyncStorage.removeItem(`habits_${uid}`);
 
       return id;
     } catch (error) {

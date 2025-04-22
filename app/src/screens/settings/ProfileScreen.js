@@ -85,7 +85,7 @@ const ProfileScreen = ({ navigation }) => {
 
     // Launch image picker
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      // mediaTypes: ImagePicker.MediaType.All,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -134,7 +134,13 @@ const ProfileScreen = ({ navigation }) => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
           // Update user profile
-          dispatch(updateUserProfile({ photoURL: downloadURL }))
+          dispatch(
+            updateUserProfile({
+              photoURL: downloadURL,
+              displayName: user.displayName, // Include current displayName
+              bio: user.bio, // Include current bio
+            })
+          )
             .unwrap()
             .then(() => {
               setIsUploading(false);

@@ -1,6 +1,6 @@
 // firebase.config.js
 import Constants from "expo-constants";
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
@@ -17,7 +17,7 @@ if (env === "development") {
   firebaseConfig = {
     apiKey: "demo-api-key",
     authDomain: "demo-app.firebaseapp.com",
-    projectId: "demo-app",
+    projectId: "trackies-dev",
     storageBucket: "demo-app.appspot.com",
     messagingSenderId: "123456789",
     appId: "1:123456789:web:abcdef123456789",
@@ -37,7 +37,14 @@ if (env === "development") {
 }
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+try {
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+} catch (e) {
+  console.error("Error initializing Firebase:", e);
+  // Handle the error appropriately, e.g., show an error message to the user
+  throw e; // Re-throw the error to prevent the app from crashing
+}
 
 // Initialize services
 const auth = getAuth(app);
@@ -48,7 +55,7 @@ const storage = getStorage(app);
 // Enable Emulators in Development
 if (env === "development") {
   // Your local IP address - change if needed
-  const localEmulatorHost = "192.168.0.125";
+  const localEmulatorHost = "192.168.0.126";
 
   // Connect to emulators
   connectAuthEmulator(auth, `http://${localEmulatorHost}:9099`);

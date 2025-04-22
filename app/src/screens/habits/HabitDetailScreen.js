@@ -74,6 +74,7 @@ const HabitDetailScreen = ({ route, navigation }) => {
         </View>
       ),
     });
+    console.log("HabitDetailScreen re-rendered with habit:", habit);
   }, [navigation, habit]);
 
   const handleEdit = () => {

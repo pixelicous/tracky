@@ -7,8 +7,10 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import {
+  collection,
   doc,
   setDoc,
+  addDoc,
   getDoc,
   updateDoc,
   serverTimestamp,
@@ -29,9 +31,11 @@ export const registerUser = createAsyncThunk(
       );
       const user = userCredential.user;
 
+      // Wait for the user to be fully authenticated
+      await user.getIdToken(true);
+
       // Update profile with display name
       await firebaseUpdateProfile(user, { displayName });
-
       // Create user document in Firestore
       const userDocRef = doc(db, "users", user.uid);
       await setDoc(userDocRef, {
@@ -66,7 +70,7 @@ export const registerUser = createAsyncThunk(
         friends: [],
       });
 
-      console.log("User document created with ID:", user.uid);
+      console.log("User document created");
 
       // Return user data
       return {
@@ -75,6 +79,7 @@ export const registerUser = createAsyncThunk(
         displayName: user.displayName,
       };
     } catch (error) {
+      console.error("Error creating user document:", error);
       return rejectWithValue(error.message);
     }
   }
@@ -172,7 +177,11 @@ export const loadUserFromStorage = createAsyncThunk(
     try {
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
-        return JSON.parse(userData);
+        const parsedUserData = JSON.parse(userData);
+        return {
+          ...parsedUserData,
+          bio: parsedUserData.bio || "", // Ensure bio is always present
+        };
       } else {
         return null;
       }

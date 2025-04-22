@@ -156,6 +156,8 @@ const ThemeSettingsScreen = ({ navigation }) => {
     try {
       await dispatch(
         updateUserProfile({
+          displayName: user.displayName || "", // Include displayName, default to empty string
+          bio: user.bio || "", // Include bio, default to empty string
           preferences: {
             ...user.preferences,
             theme: themeId,
