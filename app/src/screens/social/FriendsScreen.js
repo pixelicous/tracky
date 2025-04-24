@@ -29,6 +29,11 @@ import { theme } from "../../theme";
 
 const FriendsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const currentThemeColors =
+    currentTheme === "dark" && theme.colors.darkMode
+      ? theme.colors.darkMode
+      : theme.colors;
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("friends"); // 'friends', 'requests'
 
@@ -45,7 +50,11 @@ const FriendsScreen = ({ navigation }) => {
           style={styles.addButton}
           onPress={() => navigation.navigate("AddFriend")}
         >
-          <Ionicons name="person-add" size={24} color={theme.colors.primary} />
+          <Ionicons
+            name="person-add"
+            size={24}
+            color={currentThemeColors.primary}
+          />
         </TouchableOpacity>
       ),
     });
@@ -103,7 +112,7 @@ const FriendsScreen = ({ navigation }) => {
   // Render friend item
   const renderFriendItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.friendItem}
+      style={[styles.friendItem, { backgroundColor: currentThemeColors.card }]}
       onPress={() => navigation.navigate("FriendProfile", { friend: item })}
     >
       <View style={styles.friendInfo}>
@@ -111,7 +120,11 @@ const FriendsScreen = ({ navigation }) => {
           <Image source={{ uri: item.photoURL }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={24} color={theme.colors.primary} />
+            <Ionicons
+              name="person"
+              size={24}
+              color={currentThemeColors.primary}
+            />
           </View>
         )}
 
@@ -132,7 +145,7 @@ const FriendsScreen = ({ navigation }) => {
         <Ionicons
           name="ellipsis-vertical"
           size={20}
-          color={theme.colors.darkGray}
+          color={currentThemeColors.darkGray}
         />
       </TouchableOpacity>
     </TouchableOpacity>
@@ -143,14 +156,14 @@ const FriendsScreen = ({ navigation }) => {
     <View style={styles.emptyState}>
       {searchQuery.trim() !== "" ? (
         <>
-          <Ionicons name="search" size={48} color={theme.colors.gray} />
+          <Ionicons name="search" size={48} color={currentThemeColors.gray} />
           <Body style={styles.emptyStateText}>
             No friends found matching "{searchQuery}"
           </Body>
         </>
       ) : (
         <>
-          <Ionicons name="people" size={48} color={theme.colors.gray} />
+          <Ionicons name="people" size={48} color={currentThemeColors.gray} />
           <Body style={styles.emptyStateText}>
             You don't have any friends yet. Add friends to share your progress
             and motivate each other.
@@ -176,7 +189,11 @@ const FriendsScreen = ({ navigation }) => {
           />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={24} color={theme.colors.primary} />
+            <Ionicons
+              name="person"
+              size={24}
+              color={currentThemeColors.primary}
+            />
           </View>
         )}
 
@@ -188,17 +205,29 @@ const FriendsScreen = ({ navigation }) => {
 
       <View style={styles.requestActions}>
         <TouchableOpacity
-          style={[styles.requestButton, styles.acceptButton]}
+          style={[
+            styles.requestButton,
+            styles.acceptButton,
+            { backgroundColor: currentThemeColors.success },
+          ]}
           onPress={() => handleAcceptRequest(request.id)}
         >
-          <Ionicons name="checkmark" size={20} color={theme.colors.white} />
+          <Ionicons
+            name="checkmark"
+            size={20}
+            color={currentThemeColors.white}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.requestButton, styles.rejectButton]}
+          style={[
+            styles.requestButton,
+            styles.rejectButton,
+            { backgroundColor: currentThemeColors.error },
+          ]}
           onPress={() => handleRejectRequest(request.id)}
         >
-          <Ionicons name="close" size={20} color={theme.colors.white} />
+          <Ionicons name="close" size={20} color={currentThemeColors.white} />
         </TouchableOpacity>
       </View>
     </View>
@@ -215,7 +244,11 @@ const FriendsScreen = ({ navigation }) => {
           />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={24} color={theme.colors.primary} />
+            <Ionicons
+              name="person"
+              size={24}
+              color={currentThemeColors.primary}
+            />
           </View>
         )}
 
@@ -243,28 +276,38 @@ const FriendsScreen = ({ navigation }) => {
 
   return (
     <Container>
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: currentThemeColors.background },
+        ]}
+      >
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        <View
+          style={[
+            styles.searchContainer,
+            { backgroundColor: currentThemeColors.card },
+          ]}
+        >
           <Ionicons
             name="search"
             size={20}
-            color={theme.colors.darkGray}
+            color={currentThemeColors.darkGray}
             style={styles.searchIcon}
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: currentThemeColors.black }]}
             placeholder="Search friends..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={theme.colors.gray}
+            placeholderTextColor={currentThemeColors.gray}
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
               <Ionicons
                 name="close-circle"
                 size={20}
-                color={theme.colors.darkGray}
+                color={currentThemeColors.darkGray}
               />
             </TouchableOpacity>
           ) : null}
@@ -276,13 +319,24 @@ const FriendsScreen = ({ navigation }) => {
             style={[
               styles.tabButton,
               activeTab === "friends" && styles.activeTab,
+              {
+                borderBottomColor:
+                  activeTab === "friends"
+                    ? currentThemeColors.primary
+                    : currentThemeColors.lightGray,
+              },
             ]}
             onPress={() => setActiveTab("friends")}
           >
             <Body
               style={[
                 styles.tabText,
-                activeTab === "friends" && styles.activeTabText,
+                {
+                  color:
+                    activeTab === "friends"
+                      ? currentThemeColors.primary
+                      : currentThemeColors.darkGray,
+                },
               ]}
             >
               Friends
@@ -293,6 +347,12 @@ const FriendsScreen = ({ navigation }) => {
             style={[
               styles.tabButton,
               activeTab === "requests" && styles.activeTab,
+              {
+                borderBottomColor:
+                  activeTab === "requests"
+                    ? currentThemeColors.primary
+                    : currentThemeColors.lightGray,
+              },
             ]}
             onPress={() => setActiveTab("requests")}
           >
@@ -300,7 +360,12 @@ const FriendsScreen = ({ navigation }) => {
               <Body
                 style={[
                   styles.tabText,
-                  activeTab === "requests" && styles.activeTabText,
+                  {
+                    color:
+                      activeTab === "requests"
+                        ? currentThemeColors.primary
+                        : currentThemeColors.darkGray,
+                  },
                 ]}
               >
                 Requests
@@ -358,7 +423,11 @@ const FriendsScreen = ({ navigation }) => {
             {(!requests?.incoming || requests.incoming.length === 0) &&
               (!requests?.outgoing || requests.outgoing.length === 0) && (
                 <View style={styles.emptyState}>
-                  <Ionicons name="mail" size={48} color={theme.colors.gray} />
+                  <Ionicons
+                    name="mail"
+                    size={48}
+                    color={currentThemeColors.gray}
+                  />
                   <Body style={styles.emptyStateText}>
                     No friend requests at the moment. Invite friends to join you
                     on your habit journey!
@@ -387,7 +456,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.medium,
     paddingHorizontal: theme.spacing.small,
     marginBottom: theme.spacing.medium,
@@ -400,7 +468,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: theme.fonts.regular,
     fontSize: theme.fontSizes.medium,
-    color: theme.colors.black,
     paddingVertical: 12,
   },
   tabContainer: {
@@ -448,7 +515,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.medium,
     padding: theme.spacing.medium,
     marginBottom: theme.spacing.small,
@@ -469,7 +535,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: `${theme.colors.primary}20`,
     justifyContent: "center",
     alignItems: "center",
     marginRight: theme.spacing.medium,
@@ -492,7 +557,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     textAlign: "center",
-    color: theme.colors.darkGray,
     marginVertical: theme.spacing.medium,
   },
   emptyStateButton: {
@@ -502,7 +566,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   requestsSection: {
-    marginBottom: theme.spacing.large,
+    marginBottom: theme.spacing.medium,
   },
   requestsSectionTitle: {
     marginBottom: theme.spacing.small,
@@ -511,51 +575,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.medium,
     padding: theme.spacing.medium,
     marginBottom: theme.spacing.small,
+    borderRadius: theme.borderRadius.medium,
     ...theme.shadows.small,
   },
   requestInfo: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
   },
   requestDetails: {
-    flex: 1,
+    marginLeft: theme.spacing.medium,
   },
   requestName: {
     fontFamily: theme.fonts.semiBold,
-    marginBottom: 4,
   },
   requestActions: {
     flexDirection: "row",
   },
   requestButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: theme.borderRadius.small,
+    padding: theme.spacing.small,
     marginLeft: theme.spacing.small,
   },
-  acceptButton: {
-    backgroundColor: theme.colors.success,
-  },
-  rejectButton: {
-    backgroundColor: theme.colors.error,
-  },
+  acceptButton: {},
+  rejectButton: {},
   pendingBadge: {
-    backgroundColor: `${theme.colors.warning}20`,
-    paddingHorizontal: theme.spacing.small,
-    paddingVertical: 4,
     borderRadius: theme.borderRadius.small,
+    paddingHorizontal: theme.spacing.small,
+    paddingVertical: theme.spacing.xs,
   },
-  pendingText: {
-    color: theme.colors.warning,
-    fontFamily: theme.fonts.medium,
-  },
+  pendingText: {},
 });
 
 export default FriendsScreen;

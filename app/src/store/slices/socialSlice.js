@@ -284,11 +284,7 @@ export const fetchChallenges = createAsyncThunk(
       // Get challenges where user is a participant
       const challengesQuery = query(
         collection(firestore, "challenges"),
-        where("participants", "array-contains", {
-          userId: uid,
-          progress: 0,
-          completed: false,
-        }),
+        where("participants", "array-contains", { userId: uid }),
         orderBy("startDate", "desc")
       );
 

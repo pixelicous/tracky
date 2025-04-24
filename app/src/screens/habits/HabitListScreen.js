@@ -17,6 +17,9 @@ import { theme } from "../../theme";
 
 const HabitListScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const currentThemeColors =
+    currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all"); // 'all', 'active', 'completed'
 
@@ -33,7 +36,7 @@ const HabitListScreen = ({ navigation }) => {
           style={styles.addButton}
           onPress={() => navigation.navigate("AddHabit")}
         >
-          <Ionicons name="add" size={28} color={theme.colors.primary} />
+          <Ionicons name="add" size={28} color={currentThemeColors.primary} />
         </TouchableOpacity>
       ),
     });
@@ -104,7 +107,7 @@ const HabitListScreen = ({ navigation }) => {
     <View style={styles.emptyContainer}>
       {searchQuery ? (
         <>
-          <Ionicons name="search" size={48} color={theme.colors.gray} />
+          <Ionicons name="search" size={48} color={currentThemeColors.gray} />
           <Body style={styles.emptyText}>
             No habits found matching "{searchQuery}"
           </Body>
@@ -114,7 +117,7 @@ const HabitListScreen = ({ navigation }) => {
           <Ionicons
             name="calendar-outline"
             size={48}
-            color={theme.colors.gray}
+            color={currentThemeColors.gray}
           />
           <Body style={styles.emptyText}>
             You haven't created any habits yet
@@ -136,26 +139,31 @@ const HabitListScreen = ({ navigation }) => {
 
   return (
     <Container>
-      <View style={styles.searchContainer}>
+      <View
+        style={[
+          styles.searchContainer,
+          { backgroundColor: currentThemeColors.card },
+        ]}
+      >
         <Ionicons
           name="search"
           size={20}
-          color={theme.colors.darkGray}
+          color={currentThemeColors.darkGray}
           style={styles.searchIcon}
         />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: currentThemeColors.black }]}
           placeholder="Search habits..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor={theme.colors.gray}
+          placeholderTextColor={currentThemeColors.gray}
         />
         {searchQuery ? (
           <TouchableOpacity onPress={() => setSearchQuery("")}>
             <Ionicons
               name="close-circle"
               size={20}
-              color={theme.colors.darkGray}
+              color={currentThemeColors.darkGray}
             />
           </TouchableOpacity>
         ) : null}
@@ -166,13 +174,24 @@ const HabitListScreen = ({ navigation }) => {
           style={[
             styles.filterButton,
             filterType === "all" && styles.activeFilter,
+            {
+              backgroundColor:
+                filterType === "all"
+                  ? currentThemeColors.primary
+                  : currentThemeColors.lightGray,
+            },
           ]}
           onPress={() => setFilterType("all")}
         >
           <Body
             style={[
               styles.filterText,
-              filterType === "all" && styles.activeFilterText,
+              {
+                color:
+                  filterType === "all"
+                    ? currentThemeColors.white
+                    : currentThemeColors.darkGray,
+              },
             ]}
           >
             All
@@ -183,13 +202,24 @@ const HabitListScreen = ({ navigation }) => {
           style={[
             styles.filterButton,
             filterType === "active" && styles.activeFilter,
+            {
+              backgroundColor:
+                filterType === "active"
+                  ? currentThemeColors.primary
+                  : currentThemeColors.lightGray,
+            },
           ]}
           onPress={() => setFilterType("active")}
         >
           <Body
             style={[
               styles.filterText,
-              filterType === "active" && styles.activeFilterText,
+              {
+                color:
+                  filterType === "active"
+                    ? currentThemeColors.white
+                    : currentThemeColors.darkGray,
+              },
             ]}
           >
             Active
@@ -200,13 +230,24 @@ const HabitListScreen = ({ navigation }) => {
           style={[
             styles.filterButton,
             filterType === "completed" && styles.activeFilter,
+            {
+              backgroundColor:
+                filterType === "completed"
+                  ? currentThemeColors.primary
+                  : currentThemeColors.lightGray,
+            },
           ]}
           onPress={() => setFilterType("completed")}
         >
           <Body
             style={[
               styles.filterText,
-              filterType === "completed" && styles.activeFilterText,
+              {
+                color:
+                  filterType === "completed"
+                    ? currentThemeColors.white
+                    : currentThemeColors.darkGray,
+              },
             ]}
           >
             Completed
@@ -236,7 +277,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.medium,
     paddingHorizontal: theme.spacing.small,
     marginBottom: theme.spacing.medium,
@@ -249,7 +289,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: theme.fonts.regular,
     fontSize: theme.fontSizes.medium,
-    color: theme.colors.black,
     paddingVertical: 12,
   },
   filtersContainer: {
@@ -261,16 +300,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.medium,
     borderRadius: theme.borderRadius.medium,
     marginRight: theme.spacing.small,
-    backgroundColor: theme.colors.lightGray,
   },
   filterText: {
-    color: theme.colors.darkGray,
-  },
-  activeFilter: {
-    backgroundColor: theme.colors.primary,
-  },
-  activeFilterText: {
-    color: theme.colors.white,
+    fontFamily: theme.fonts.regular,
   },
   listContent: {
     flexGrow: 1,
@@ -285,18 +317,16 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: "center",
-    color: theme.colors.darkGray,
     marginTop: theme.spacing.medium,
     marginBottom: theme.spacing.medium,
   },
   emptyButton: {
-    backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.medium,
     paddingVertical: theme.spacing.small,
     borderRadius: theme.borderRadius.medium,
   },
   emptyButtonText: {
-    color: theme.colors.white,
+    fontFamily: theme.fonts.semiBold,
   },
 });
 

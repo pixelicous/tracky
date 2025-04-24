@@ -7,7 +7,7 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setOnboardingComplete } from "../../store/slices/uiSlice";
 import { Ionicons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
@@ -52,6 +52,9 @@ const OnboardingScreen = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef();
   const dispatch = useDispatch();
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const currentThemeColors =
+    currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
 
   const handleNext = () => {
     if (currentIndex < onboardingData.length - 1) {
@@ -115,7 +118,9 @@ const OnboardingScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: currentThemeColors.white }]}
+    >
       <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
         <Body>Skip</Body>
       </TouchableOpacity>
@@ -145,7 +150,7 @@ const OnboardingScreen = ({ navigation }) => {
               <Ionicons
                 name="arrow-forward"
                 size={20}
-                color={theme.colors.white}
+                color={currentThemeColors.white}
               />
             )
           }
@@ -160,7 +165,6 @@ const OnboardingScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.white,
   },
   skipButton: {
     position: "absolute",
@@ -191,8 +195,8 @@ const styles = StyleSheet.create({
   },
   description: {
     textAlign: "center",
-    color: theme.colors.darkGray,
     maxWidth: width * 0.8,
+    color: theme.colors.darkGray,
   },
   paginationContainer: {
     flexDirection: "row",
