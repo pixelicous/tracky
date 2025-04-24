@@ -42,6 +42,10 @@ export const COLORS = {
   pending: "#FFBE55",
   missed: "#FF8087",
 
+  buttonPurple: "#A020F0",
+  buttonGlow: "#D8BFD8",
+  inputBorder: "#D3D3D3",
+
   // Transparent Colors
   transparent: "transparent",
   overlay: "rgba(34, 35, 52, 0.7)",
