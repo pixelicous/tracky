@@ -39,10 +39,14 @@ export const fetchHabits = createAsyncThunk(
           id: doc.id,
           ...doc.data(),
           createdAt: doc.data().createdAt
-            ? doc.data().createdAt.toDate().toISOString()
+            ? typeof doc.data().createdAt.toDate === "function"
+              ? doc.data().createdAt.toDate().toISOString()
+              : doc.data().createdAt
             : null,
           updatedAt: doc.data().updatedAt
-            ? doc.data().updatedAt.toDate().toISOString()
+            ? typeof doc.data().updatedAt.toDate === "function"
+              ? doc.data().updatedAt.toDate().toISOString()
+              : doc.data().updatedAt
             : null,
         });
       });
@@ -255,12 +259,20 @@ export const completeHabit = createAsyncThunk(
         // Dispatch action to update user stats in auth state
         dispatch(
           updateUserProfile({
+            displayName: getState().auth.user.displayName,
+            preferences: getState().auth.user.preferences,
             stats: {
               ...getState().auth.user.stats,
-              totalHabitsCompleted:
-                getState().auth.user.stats.totalHabitsCompleted + 1,
-              currentStreak: getState().auth.user.stats.currentStreak + 1,
-              xpPoints: getState().auth.user.stats.xpPoints + 10,
+              totalHabitsCompleted: getState().auth.user.stats
+                ?.totalHabitsCompleted
+                ? getState().auth.user.stats.totalHabitsCompleted + 1
+                : 1,
+              currentStreak: getState().auth.user.stats?.currentStreak
+                ? getState().auth.user.stats.currentStreak + 1
+                : 1,
+              xpPoints: getState().auth.user.stats?.xpPoints
+                ? getState().auth.user.stats.xpPoints + 10
+                : 10,
             },
           })
         );

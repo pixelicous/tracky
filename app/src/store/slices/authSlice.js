@@ -157,9 +157,9 @@ export const updateUserProfile = createAsyncThunk(
       const userDocRef = doc(db, "users", uid);
 
       await updateDoc(userDocRef, {
-        displayName: userData.displayName,
-        bio: userData.bio,
-        preferences: userData.preferences,
+        displayName: userData.displayName || "",
+        bio: userData.bio || "",
+        preferences: userData.preferences || {},
         updatedAt: serverTimestamp(),
       });
 
