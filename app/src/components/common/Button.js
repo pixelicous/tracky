@@ -136,9 +136,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   primaryButton: {
+    backgroundColor: theme.colors.primary,
     ...theme.shadows.small,
   },
   secondaryButton: {
+    backgroundColor: theme.colors.secondary,
     ...theme.shadows.small,
   },
   outlineButton: {
