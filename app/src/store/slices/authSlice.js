@@ -112,9 +112,13 @@ export const signIn = createAsyncThunk(
       };
 
       if (userDoc.exists()) {
+        const data = userDoc.data();
         userData = {
           ...userData,
-          ...userDoc.data(),
+          ...data,
+          createdAt: data.createdAt?.toDate().toISOString() || null,
+          lastActive: data.lastActive?.toDate().toISOString() || null,
+          updatedAt: data.updatedAt?.toDate().toISOString() || null,
         };
       }
 
@@ -218,7 +222,13 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload;
+        const payload = {
+          ...action.payload,
+          createdAt: action.payload.createdAt?.toDate().toISOString() || null,
+          lastActive: action.payload.lastActive?.toDate().toISOString() || null,
+          updatedAt: action.payload.updatedAt?.toDate().toISOString() || null,
+        };
+        state.user = payload;
         state.isAuthenticated = true;
       })
       .addCase(registerUser.rejected, (state, action) => {
@@ -233,9 +243,33 @@ const authSlice = createSlice({
       })
       .addCase(signIn.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload;
+        const payload = {
+          ...action.payload,
+          createdAt: action.payload.createdAt?.toDate().toISOString() || null,
+          lastActive: action.payload.lastActive?.toDate().toISOString() || null,
+          updatedAt: action.payload.updatedAt?.toDate().toISOString() || null,
+        };
+        state.user = payload;
         state.isAuthenticated = true;
-        AsyncStorage.setItem("user", JSON.stringify(action.payload));
+        // Fetch latest user data from Firestore and update AsyncStorage
+        (async () => {
+          const userDocRef = doc(db, "users", payload.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            const updatedUserData = {
+              ...payload,
+              ...data,
+              createdAt: data.createdAt?.toDate().toISOString() || null,
+              lastActive: data.lastActive?.toDate().toISOString() || null,
+              updatedAt: data.updatedAt?.toDate().toISOString() || null,
+            };
+            state.user = updatedUserData;
+            AsyncStorage.setItem("user", JSON.stringify(updatedUserData));
+          } else {
+            AsyncStorage.setItem("user", JSON.stringify(payload));
+          }
+        })();
       })
       .addCase(signIn.rejected, (state, action) => {
         state.isLoading = false;
@@ -277,12 +311,18 @@ const authSlice = createSlice({
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = {
+        const updatedUser = {
           ...state.user,
           displayName: action.payload.displayName,
           bio: action.payload.bio,
-          ...action.payload,
+          photoURL: action.payload.photoURL, // Update photoURL
         };
+        state.user = updatedUser;
+        AsyncStorage.setItem("user", JSON.stringify(updatedUser)); // Update AsyncStorage
+        console.log(
+          "updateUserProfile.fulfilled: Redux store updated",
+          updatedUser
+        ); // Add logging
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.isLoading = false;

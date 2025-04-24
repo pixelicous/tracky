@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -47,6 +48,44 @@ const ProfileScreen = ({ navigation }) => {
   useEffect(() => {
     dispatch(fetchUserSubscription());
   }, [dispatch]);
+
+  // Fetch user data on focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchProfileData = async () => {
+        setLoading(true);
+        try {
+          // Fetch user data from Firestore
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            // Update user data in Redux store
+            dispatch(
+              setUser({
+                ...user,
+                ...data,
+                createdAt: data.createdAt?.toDate().toISOString() || null,
+                lastActive: data.lastActive?.toDate().toISOString() || null,
+                updatedAt: data.updatedAt?.toDate().toISOString() || null,
+              })
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching profile data:", error);
+          Alert.alert(
+            "Error",
+            "Failed to load profile data. Please try again."
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchProfileData();
+    }, [user, dispatch])
+  );
 
   // Calculate level progress
   const calculateLevelProgress = () => {
