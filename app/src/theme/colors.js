@@ -52,4 +52,30 @@ export const COLORS = {
   level3: "#5ABCFF",
   level4: "#2E9FFE",
   level5: "#0A85FD",
+
+  darkMode: {
+    // Dark Mode Core Colors
+    primary: "#8E82E8",
+    primaryLight: "#6A5AE0",
+    primaryDark: "#4C3DD0",
+    secondary: "#FFA5AA",
+    secondaryLight: "#FF8087",
+    secondaryDark: "#E5636B",
+    tertiary: "#7CE5C7",
+    tertiaryLight: "#54D8B1",
+    tertiaryDark: "#3BBE9A",
+
+    // Dark Mode Neutral Colors
+    white: "#222334",
+    offWhite: "#2A2B3D",
+    lightGray: "#434759",
+    gray: "#AFB3BC",
+    darkGray: "#EEEEF0",
+    black: "#FFFFFF",
+
+    // Dark Mode Background Colors
+    background: "#222334",
+    card: "#2A2B3D",
+    cardAlt: "#434759",
+  },
 };
