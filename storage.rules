@@ -2,12 +2,13 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    match /profileImages/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
     match /{allPaths=**} {
-      allow read: if request.auth != null;
+      allow read: if true;
+    }
+
+    match /profileImages/{userId} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;
     }
   }
 }

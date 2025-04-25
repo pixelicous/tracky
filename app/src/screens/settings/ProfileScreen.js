@@ -7,13 +7,10 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { db } from "../../services/api/firebase";
 import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
-import { setUser } from "../../store/slices/authSlice";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { doc, getDoc } from "firebase/firestore";
 import {
   getStorage,
   ref,
@@ -172,7 +169,6 @@ const ProfileScreen = ({ navigation }) => {
           setLoading(false);
         },
         async () => {
-        async () => {
           // Upload complete, get download URL
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
@@ -192,20 +188,6 @@ const ProfileScreen = ({ navigation }) => {
             .catch((error) => {
               console.error("Profile update error:", error);
               Alert.alert(
-                "Update Failed",
-                "Failed to update profile image. Please try again."
-              );
-              setIsUploading(false);
-              setLoading(false);
-            });
-
-          // Update user object in Redux store after downloadURL is available
-          useEffect(() => {
-            if (downloadURL) {
-              dispatch(setUser({ ...user, photoURL: downloadURL }));
-            }
-          }, [downloadURL, dispatch, user]);
-        }
                 "Update Failed",
                 "Failed to update profile image. Please try again."
               );
