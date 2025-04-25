@@ -28,7 +28,8 @@ const DashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const dispatch = useDispatch();
 
-  const { user } = useSelector((state) => state.auth);
+  const user = useSelector((state) => state.auth.user);
+  const memoizedUser = React.useMemo(() => user, [user]);
   const { dailyHabits, loading } = useSelector((state) => state.habits);
   const { stats } = useSelector((state) => state.progress);
   const { subscription } = useSelector((state) => state.premium);
@@ -90,19 +91,21 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.header}>
           <View>
             <Body style={styles.dateText}>{formattedDate}</Body>
-            <Heading>Hello, {user?.displayName || "Friend"}</Heading>
+            <Heading>Hello, {memoizedUser?.displayName || "Friend"}</Heading>
           </View>
 
           <TouchableOpacity
+            key={memoizedUser?.photoURL}
             style={styles.profileButton}
             onPress={() =>
               navigation.navigate("SettingsTab", { screen: "Profile" })
             }
           >
-            {user?.photoURL ? (
+            {memoizedUser && memoizedUser.photoURL ? (
               <Image
-                source={{ uri: user.photoURL }}
+                source={{ uri: memoizedUser.photoURL }}
                 style={styles.profileImage}
+                onError={() => console.log("Error loading profile image")}
               />
             ) : (
               <View style={styles.profilePlaceholder}>
