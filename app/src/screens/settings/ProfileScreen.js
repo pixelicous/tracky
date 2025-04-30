@@ -96,20 +96,17 @@ const ProfileScreen = ({ navigation }) => {
   // Calculate level progress
   const calculateLevelProgress = () => {
     const currentLevel = stats.level || 1;
-    const nextLevel = currentLevel + 1;
+    const xpForCurrentLevelStart =
+      (currentLevel - 1) * (currentLevel - 1) * 100;
+    const xpForNextLevelStart = currentLevel * currentLevel * 100;
 
-    // XP needed for next level
-    const xpForCurrentLevel = currentLevel * currentLevel * 100;
-    const xpForNextLevel = nextLevel * nextLevel * 100;
-    const xpNeeded = xpForNextLevel - xpForCurrentLevel;
-
-    // Current progress
-    const currentXp = stats.xpPoints || 0;
-    const progressXp = currentXp - xpForCurrentLevel;
+    const xpNeeded = xpForNextLevelStart - xpForCurrentLevelStart;
+    const xpCurrent = (stats.xpPoints || 0) - xpForCurrentLevelStart;
+    const progress = xpCurrent / xpNeeded;
 
     return {
-      progress: Math.min(1, Math.max(0, progressXp / xpNeeded)),
-      currentXp: progressXp,
+      progress: Math.min(1, Math.max(0, progress)),
+      currentXp: xpCurrent,
       totalXpNeeded: xpNeeded,
     };
   };

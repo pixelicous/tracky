@@ -46,6 +46,12 @@ const ProgressDashboardScreen = ({ navigation }) => {
     loadData();
   }, [selectedTimeframe]);
 
+  useEffect(() => {
+    console.log("ProgressDashboardScreen - stats:", stats);
+    const levelProgress = calculateXpProgress();
+    console.log("ProgressDashboardScreen - levelProgress:", levelProgress);
+  }, [stats]);
+
   const loadData = async () => {
     dispatch(fetchUserStats());
     dispatch(fetchStatsHistory(selectedTimeframe));
@@ -61,16 +67,19 @@ const ProgressDashboardScreen = ({ navigation }) => {
   // Calculate XP to next level
   const calculateXpProgress = () => {
     const currentLevel = stats.level || 1;
-    const nextLevelXp = (currentLevel + 1) * (currentLevel + 1) * 100;
-    const currentLevelXp = currentLevel * currentLevel * 100;
-    const xpNeeded = nextLevelXp - currentLevelXp;
-    const xpProgress = (stats.xpPoints - currentLevelXp) / xpNeeded;
+    const xpForCurrentLevelStart =
+      (currentLevel - 1) * (currentLevel - 1) * 100;
+    const xpForNextLevelStart = currentLevel * currentLevel * 100;
+
+    const xpNeeded = xpForNextLevelStart - xpForCurrentLevelStart;
+    const xpCurrent = stats.xpPoints - xpForCurrentLevelStart;
+    const xpProgress = xpCurrent / xpNeeded;
 
     return {
       level: currentLevel,
       nextLevel: currentLevel + 1,
       xpProgress,
-      xpCurrent: stats.xpPoints - currentLevelXp,
+      xpCurrent,
       xpNeeded,
     };
   };
