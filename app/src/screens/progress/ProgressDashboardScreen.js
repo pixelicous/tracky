@@ -44,7 +44,7 @@ const ProgressDashboardScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadData();
-  }, [selectedTimeframe]);
+  }, [selectedTimeframe, habits]);
 
   useEffect(() => {
     console.log("ProgressDashboardScreen - stats:", stats);
