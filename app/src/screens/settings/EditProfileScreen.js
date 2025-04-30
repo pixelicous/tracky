@@ -78,11 +78,15 @@ const EditProfileScreen = ({ navigation }) => {
     const profileData = {
       displayName: displayName.trim(),
       bio: bio.trim(),
+      photoURL: user?.photoURL, // Preserve the existing photoURL
       preferences: {
         emailNotifications,
         pushEnabled,
         dailyReminder,
         reminderTime,
+        shareActivity: user?.preferences?.shareActivity !== false,
+        showInLeaderboards: user?.preferences?.showInLeaderboards !== false,
+        publicProfile: user?.preferences?.publicProfile === true,
       },
     };
 

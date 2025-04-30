@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Image } from "react-native";
 import {
   View,
   StyleSheet,

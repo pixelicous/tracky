@@ -21,7 +21,9 @@ export const fetchHabits = createAsyncThunk(
   "habits/fetchHabits",
   async (_, { getState, rejectWithValue }) => {
     try {
+      console.log("fetchHabits thunk called");
       const { uid } = getState().auth.user;
+      console.log("User ID:", uid);
 
       // Get habits from Firestore
       const habitsQuery = query(
@@ -54,6 +56,7 @@ export const fetchHabits = createAsyncThunk(
       // Cache habits locally
       await AsyncStorage.setItem(`habits_${uid}`, JSON.stringify(habits));
 
+      console.log("Habits fetched from Firestore:", habits);
       return habits;
     } catch (error) {
       // Try to get habits from local storage
@@ -311,7 +314,7 @@ export const deleteHabit = createAsyncThunk(
 
       // Dispatch fetchHabits to refresh the list
       console.log("Dispatching fetchHabits after archiving");
-      dispatch(fetchHabits());
+      await dispatch(fetchHabits());
 
       // Clear cached habits in AsyncStorage
       const { uid } = getState().auth.user;
@@ -358,6 +361,7 @@ const habitsSlice = createSlice({
 
         // Filter daily habits for quick access
         const today = new Date().getDay();
+        console.log("Habits after fetch:", action.payload);
         state.dailyHabits = action.payload.filter((habit) => {
           if (habit.frequency.type === "daily") return true;
           if (

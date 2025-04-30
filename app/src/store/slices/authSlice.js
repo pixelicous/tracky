@@ -163,6 +163,7 @@ export const updateUserProfile = createAsyncThunk(
       await updateDoc(userDocRef, {
         displayName: userData.displayName || "",
         bio: userData.bio || "",
+        photoURL: userData.photoURL || null,
         preferences: userData.preferences || {},
         updatedAt: serverTimestamp(),
       });

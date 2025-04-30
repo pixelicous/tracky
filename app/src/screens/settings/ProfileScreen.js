@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../services/api/firebase";
 import {
   View,
   StyleSheet,
@@ -17,7 +19,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
-import { updateUserProfile } from "../../store/slices/authSlice";
+import { updateUserProfile, setUser } from "../../store/slices/authSlice";
 import { Container, Card, Button, Loading } from "../../components/common";
 import {
   Title,
@@ -56,6 +58,10 @@ const ProfileScreen = ({ navigation }) => {
         setLoading(true);
         try {
           // Fetch user data from Firestore
+          if (!user) {
+            console.log("User is null, skipping fetchProfileData");
+            return;
+          }
           const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
 
@@ -84,7 +90,7 @@ const ProfileScreen = ({ navigation }) => {
       };
 
       fetchProfileData();
-    }, [user, dispatch])
+    }, [user?.uid, dispatch])
   );
 
   // Calculate level progress
@@ -499,7 +505,7 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.profileImageWrapper}
                 onPress={handleChangeProfileImage}
-                disabled={loading}
+                disabled={isUploading}
               >
                 {user?.photoURL ? (
                   <Image
