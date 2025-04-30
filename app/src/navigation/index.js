@@ -379,7 +379,7 @@ const MainNavigator = () => {
       <MainTab.Screen
         name="HabitsTab"
         component={HabitsNavigator}
-        options={{ title: "Habits" }}
+        options={{ title: "Habits", unmountOnBlur: true }} // Add unmountOnBlur
       />
       <MainTab.Screen
         name="ProgressTab"

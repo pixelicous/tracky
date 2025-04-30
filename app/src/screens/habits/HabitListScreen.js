@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // Import useCallback
+import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 import {
   View,
   StyleSheet,
@@ -32,9 +33,14 @@ const HabitListScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { items: habits, loading } = useSelector((state) => state.habits);
 
-  useEffect(() => {
-    loadData();
+  // Fetch habits when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [dispatch]) // Add dispatch as a dependency
+  );
 
+  useEffect(() => {
     // Set up navigation header button
     navigation.setOptions({
       headerRight: () => (
@@ -46,7 +52,7 @@ const HabitListScreen = ({ navigation }) => {
         </TouchableOpacity>
       ),
     });
-  }, []);
+  }, [navigation, currentThemeColors.primary]); // Add navigation and currentThemeColors.primary as dependencies
 
   const loadData = () => {
     dispatch(fetchHabits());

@@ -4,6 +4,7 @@ import Input from "./Input";
 import Modal from "./Modal";
 import Loading from "./Loading";
 import Container from "./Container";
+import SegmentedControl from "./SegmentedControl"; // Import SegmentedControl
 import { Title, Heading, Subheading, Body, Caption } from "./Typography";
 
 export {
@@ -13,6 +14,7 @@ export {
   Modal,
   Loading,
   Container,
+  SegmentedControl, // Export SegmentedControl
   Title,
   Heading,
   Subheading,
@@ -27,6 +29,7 @@ export default {
   Modal,
   Loading,
   Container,
+  SegmentedControl, // Export SegmentedControl in default export
   Title,
   Heading,
   Subheading,

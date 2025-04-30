@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Input } from "../common";
+import { Button, Input, SegmentedControl } from "../common";
 import { Title, Body, Caption } from "../common/Typography";
 import ColorPicker from "./ColorPicker";
 import IconPicker from "./IconPicker";
+import EmojiPickerModal from "./EmojiPickerModal";
 import FrequencyPicker from "./FrequencyPicker";
 import ReminderPicker from "./ReminderPicker";
 import { theme } from "../../theme";
@@ -15,6 +16,7 @@ const HabitForm = ({ initialValues = {}, onSubmit, isEditing = false }) => {
     description: "",
     icon: "checkmark-circle",
     color: theme.colors.primary,
+    emoji: null, // Add emoji field
     category: "personal",
     frequency: {
       type: "daily",
@@ -32,6 +34,11 @@ const HabitForm = ({ initialValues = {}, onSubmit, isEditing = false }) => {
   const [errors, setErrors] = useState({});
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
+  const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
+  // Set initial selectionType based on whether initialValues contains an emoji
+  const [selectionType, setSelectionType] = useState(
+    initialValues.emoji ? "emoji" : "icon"
+  ); // 'icon' or 'emoji'
 
   const handleChange = (field, value) => {
     setFormValues((prev) => ({
@@ -69,101 +76,152 @@ const HabitForm = ({ initialValues = {}, onSubmit, isEditing = false }) => {
       newErrors.title = "Title is required";
     }
 
+    if (selectionType === "icon" && (!formValues.icon || !formValues.color)) {
+      newErrors.iconColor = "Icon and Color are required";
+    }
+
+    if (selectionType === "emoji" && !formValues.emoji) {
+      newErrors.emoji = "Emoji is required";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = () => {
     if (validate()) {
-      onSubmit(formValues);
+      const submittedValues = { ...formValues };
+      if (selectionType === "emoji") {
+        submittedValues.icon = formValues.emoji;
+        delete submittedValues.emoji;
+      } else {
+        delete submittedValues.emoji;
+      }
+      onSubmit(submittedValues);
     }
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.form}>
-        <Input
-          label="Habit Title"
-          value={formValues.title}
-          onChangeText={(text) => handleChange("title", text)}
-          placeholder="e.g., Drink water, Read a book..."
-          error={errors.title}
-        />
+    <>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.form}>
+          <Input
+            label="Habit Title"
+            value={formValues.title}
+            onChangeText={(text) => handleChange("title", text)}
+            placeholder="e.g., Drink water, Read a book..."
+            error={errors.title}
+          />
 
-        <Input
-          label="Description (optional)"
-          value={formValues.description}
-          onChangeText={(text) => handleChange("description", text)}
-          placeholder="Why is this habit important to you?"
-          multiline
-          numberOfLines={3}
-        />
+          <Input
+            label="Description (optional)"
+            value={formValues.description}
+            onChangeText={(text) => handleChange("description", text)}
+            placeholder="Why is this habit important to you?"
+            multiline
+            numberOfLines={3}
+          />
 
-        <View style={styles.row}>
-          <View style={styles.iconColorContainer}>
-            <Caption style={styles.label}>Icon</Caption>
-            <View style={styles.iconButton}>
+          <View style={styles.sectionContainer}>
+            <Caption style={styles.label}>Appearance</Caption>
+            <SegmentedControl
+              values={["Icon", "Emoji"]}
+              selectedIndex={selectionType === "icon" ? 0 : 1}
+              onChange={(event) => {
+                setSelectionType(
+                  event.nativeEvent.selectedSegmentIndex === 0
+                    ? "icon"
+                    : "emoji"
+                );
+              }}
+            />
+          </View>
+
+          {selectionType === "icon" ? (
+            <View style={styles.row}>
+              <View style={styles.iconColorContainer}>
+                <Caption style={styles.label}>Icon</Caption>
+                <View style={styles.iconButton}>
+                  <Button
+                    type="outline"
+                    title={formValues.icon ? "" : "Choose Icon"}
+                    onPress={() => setIconPickerVisible(true)}
+                    icon={
+                      formValues.icon ? (
+                        <Ionicons
+                          name={formValues.icon}
+                          size={24}
+                          color={formValues.color}
+                        />
+                      ) : null
+                    }
+                    style={styles.iconButtonStyle}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.iconColorContainer}>
+                <Caption style={styles.label}>Color</Caption>
+                <Button
+                  type="outline"
+                  title=""
+                  onPress={() => setColorPickerVisible(true)}
+                  style={[
+                    styles.colorButton,
+                    { borderColor: formValues.color },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.colorPreview,
+                      { backgroundColor: formValues.color },
+                    ]}
+                  />
+                </Button>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.sectionContainer}>
+              <Caption style={styles.label}>Emoji</Caption>
               <Button
                 type="outline"
-                title={formValues.icon ? "" : "Choose Icon"}
-                onPress={() => setIconPickerVisible(true)}
-                icon={
-                  formValues.icon ? (
-                    <Ionicons
-                      name={formValues.icon}
-                      size={24}
-                      color={formValues.color}
-                    />
-                  ) : null
-                }
-                style={styles.iconButtonStyle}
+                title={formValues.emoji ? formValues.emoji : "Choose Emoji"}
+                onPress={() => {
+                  setEmojiPickerVisible(true);
+                  // Ensure selectionType is set to "emoji" when opening the emoji picker
+                  setSelectionType("emoji");
+                }}
+                style={styles.iconButtonStyle} // Reusing iconButtonStyle for now, might need a new style
               />
             </View>
+          )}
+
+          <View style={styles.sectionContainer}>
+            <Caption style={styles.label}>How often?</Caption>
+            <FrequencyPicker
+              value={formValues.frequency}
+              onChange={handleFrequencyChange}
+            />
           </View>
 
-          <View style={styles.iconColorContainer}>
-            <Caption style={styles.label}>Color</Caption>
+          <View style={styles.sectionContainer}>
+            <Caption style={styles.label}>Reminders</Caption>
+            <ReminderPicker
+              value={formValues.reminder}
+              frequency={formValues.frequency}
+              onChange={handleReminderChange}
+            />
+          </View>
+
+          <View style={styles.buttonContainer}>
             <Button
-              type="outline"
-              title=""
-              onPress={() => setColorPickerVisible(true)}
-              style={[styles.colorButton, { borderColor: formValues.color }]}
-            >
-              <View
-                style={[
-                  styles.colorPreview,
-                  { backgroundColor: formValues.color },
-                ]}
-              />
-            </Button>
+              title={isEditing ? "Save Changes" : "Create Habit"}
+              onPress={handleSubmit}
+              fullWidth
+            />
           </View>
         </View>
-
-        <View style={styles.sectionContainer}>
-          <Caption style={styles.label}>How often?</Caption>
-          <FrequencyPicker
-            value={formValues.frequency}
-            onChange={handleFrequencyChange}
-          />
-        </View>
-
-        <View style={styles.sectionContainer}>
-          <Caption style={styles.label}>Reminders</Caption>
-          <ReminderPicker
-            value={formValues.reminder}
-            frequency={formValues.frequency}
-            onChange={handleReminderChange}
-          />
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <Button
-            title={isEditing ? "Save Changes" : "Create Habit"}
-            onPress={handleSubmit}
-            fullWidth
-          />
-        </View>
-      </View>
+      </ScrollView>
 
       {/* Color Picker Modal */}
       <ColorPicker
@@ -187,10 +245,20 @@ const HabitForm = ({ initialValues = {}, onSubmit, isEditing = false }) => {
         }}
         onClose={() => setIconPickerVisible(false)}
       />
-    </ScrollView>
+
+      {/* Emoji Picker Modal */}
+      <EmojiPickerModal
+        visible={emojiPickerVisible}
+        onSelectEmoji={(emoji) => {
+          handleChange("emoji", emoji);
+          setSelectionType("emoji"); // Ensure selectionType is set to "emoji" when an emoji is selected
+          setEmojiPickerVisible(false);
+        }}
+        onClose={() => setEmojiPickerVisible(false)}
+      />
+    </>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

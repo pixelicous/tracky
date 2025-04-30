@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "../common";
 import { Body, Caption } from "../common/Typography";
@@ -9,6 +9,7 @@ import { getIconByHabitCategory } from "../../utils/iconUtils";
 
 const HabitCard = ({ habit, onPress, onToggle, style, compact = false }) => {
   const { title, description, icon, color, category, progress } = habit;
+  console.log("HabitCard rendering icon:", icon);
   const iconColor = color || theme.colors.primary;
 
   // Calculate completion status
@@ -32,7 +33,11 @@ const HabitCard = ({ habit, onPress, onToggle, style, compact = false }) => {
             ]}
           >
             {icon ? (
-              <Ionicons name={icon} size={20} color={iconColor} />
+              icon.length === 1 ? (
+                <Text style={{ fontSize: 20 }}>{icon}</Text>
+              ) : (
+                <Ionicons name={icon} size={20} color={iconColor} />
+              )
             ) : (
               getIconByHabitCategory(category, 20, iconColor)
             )}
@@ -74,7 +79,11 @@ const HabitCard = ({ habit, onPress, onToggle, style, compact = false }) => {
             ]}
           >
             {icon ? (
-              <Ionicons name={icon} size={24} color={iconColor} />
+              icon.length === 1 ? (
+                <Text style={{ fontSize: 24 }}>{icon}</Text>
+              ) : (
+                <Ionicons name={icon} size={24} color={iconColor} />
+              )
             ) : (
               getIconByHabitCategory(category, 24, iconColor)
             )}

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react"; // Import useCallback
 import { Image } from "react-native";
+import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 import {
   View,
   StyleSheet,
@@ -41,9 +42,17 @@ const DashboardScreen = ({ navigation }) => {
   const { stats } = useSelector((state) => state.progress);
   const { subscription } = useSelector((state) => state.premium);
 
+  // Fetch data when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [dispatch]) // Add dispatch as a dependency
+  );
+
   useEffect(() => {
-    loadData();
-  }, []);
+    // Initial data load if not already loaded (optional, useFocusEffect handles this)
+    // loadData();
+  }, []); // Empty dependency array as useFocusEffect handles fetching on focus
 
   const loadData = async () => {
     dispatch(fetchHabits());

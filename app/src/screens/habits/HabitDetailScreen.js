@@ -7,6 +7,7 @@ import {
   Alert,
   Platform,
   RefreshControl,
+  Text, // Add Text import
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
@@ -340,7 +341,13 @@ const HabitDetailScreen = ({ route, navigation }) => {
               ]}
             >
               {habit.icon ? (
-                <Ionicons name={habit.icon} size={30} color={habit.color} />
+                /^\p{Emoji_Presentation}|\p{Emoji}\p{Emoji_Modifier_Base}$/u.test(
+                  habit.icon
+                ) ? (
+                  <Text style={{ fontSize: 30 }}>{habit.icon}</Text>
+                ) : (
+                  <Ionicons name={habit.icon} size={30} color={habit.color} />
+                )
               ) : (
                 getIconByHabitCategory(habit.category, 30, habit.color)
               )}
