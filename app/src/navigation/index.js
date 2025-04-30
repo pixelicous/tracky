@@ -379,7 +379,21 @@ const MainNavigator = () => {
       <MainTab.Screen
         name="HabitsTab"
         component={HabitsNavigator}
-        options={{ title: "Habits", unmountOnBlur: true }} // Add unmountOnBlur
+        options={{
+          title: "Habits",
+          unmountOnBlur: true,
+          // Add a listener to reset navigation to HabitsList when tab is pressed
+          listeners: ({ navigation }) => ({
+            tabPress: (e) => {
+              // Prevent default behavior
+              e.preventDefault();
+              // Reset the stack to show HabitsList screen
+              navigation.navigate("HabitsTab", {
+                screen: "HabitsList",
+              });
+            },
+          }),
+        }}
       />
       <MainTab.Screen
         name="ProgressTab"
