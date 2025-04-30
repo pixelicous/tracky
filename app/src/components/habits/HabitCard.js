@@ -33,7 +33,9 @@ const HabitCard = ({ habit, onPress, onToggle, style, compact = false }) => {
             ]}
           >
             {icon ? (
-              icon.length === 1 ? (
+              /^\p{Emoji_Presentation}|\p{Emoji}\p{Emoji_Modifier_Base}$/u.test(
+                icon
+              ) ? (
                 <Text style={{ fontSize: 20 }}>{icon}</Text>
               ) : (
                 <Ionicons name={icon} size={20} color={iconColor} />
@@ -79,7 +81,9 @@ const HabitCard = ({ habit, onPress, onToggle, style, compact = false }) => {
             ]}
           >
             {icon ? (
-              icon.length === 1 ? (
+              /^\p{Emoji_Presentation}|\p{Emoji}\p{Emoji_Modifier_Base}$/u.test(
+                icon
+              ) ? (
                 <Text style={{ fontSize: 24 }}>{icon}</Text>
               ) : (
                 <Ionicons name={icon} size={24} color={iconColor} />
