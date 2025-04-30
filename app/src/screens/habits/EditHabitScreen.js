@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Alert } from "react-native";
+import { StyleSheet, Alert, Text } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { updateHabit } from "../../store/slices/habitsSlice";
 import { Container } from "../../components/common";
@@ -7,9 +7,19 @@ import { HabitForm } from "../../components/habits";
 import { theme } from "../../theme";
 
 const EditHabitScreen = ({ route, navigation }) => {
-  const { habit } = route.params;
+  const { habitId } = route.params;
   const dispatch = useDispatch();
   const loading = useSelector((state) => state.habits.loading);
+  const habits = useSelector((state) => state.habits.items);
+  const habit = habits.find((h) => h.id === habitId);
+
+  if (!habit) {
+    return (
+      <Container>
+        <Text>Habit not found</Text>
+      </Container>
+    );
+  }
 
   const handleSubmit = (habitData) => {
     dispatch(updateHabit({ id: habit.id, habitData }))

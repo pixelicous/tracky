@@ -10,7 +10,7 @@ import { theme } from "./src/theme";
 import Navigation from "./src/navigation";
 import { auth } from "./src/services/api/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { setUser } from "./src/store/slices/authSlice";
+import { setUser, loadUserFromStorage } from "./src/store/slices/authSlice";
 import {
   setFirstLaunch,
   setOnboardingComplete,
@@ -29,6 +29,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const [userLoaded, setUserLoaded] = useState(false);
 
   useEffect(() => {
     async function prepareApp() {
@@ -57,9 +58,19 @@ export default function App() {
         );
         store.dispatch(setOnboardingComplete(onboardingComplete === "true"));
 
-        // Set up auth listener
+        // Load user from AsyncStorage using the thunk
+        await store.dispatch(loadUserFromStorage());
+        console.log("Attempted to restore user session from AsyncStorage");
+
+        // Set user loaded to true regardless of authentication status
+        setUserLoaded(true);
+
+        // Set up auth listener for future auth state changes
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          store.dispatch(setUser(user));
+          if (user && !store.getState().auth.user) {
+            // Only update if there's an actual Firebase user
+            store.dispatch(setUser(user));
+          }
         });
 
         return unsubscribe;
@@ -81,6 +92,10 @@ export default function App() {
   }, [appIsReady]);
 
   if (!appIsReady) {
+    return null;
+  }
+
+  if (!userLoaded) {
     return null;
   }
 

@@ -1,6 +1,7 @@
 import React from "react";
 import {
   View,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Switch,

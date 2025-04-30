@@ -21,7 +21,9 @@ export const fetchHabits = createAsyncThunk(
   "habits/fetchHabits",
   async (_, { getState, rejectWithValue }) => {
     try {
+      console.log("fetchHabits thunk called");
       const { uid } = getState().auth.user;
+      console.log("User ID:", uid);
 
       // Get habits from Firestore
       const habitsQuery = query(
@@ -39,10 +41,14 @@ export const fetchHabits = createAsyncThunk(
           id: doc.id,
           ...doc.data(),
           createdAt: doc.data().createdAt
-            ? doc.data().createdAt.toDate().toISOString()
+            ? typeof doc.data().createdAt.toDate === "function"
+              ? doc.data().createdAt.toDate().toISOString()
+              : doc.data().createdAt
             : null,
           updatedAt: doc.data().updatedAt
-            ? doc.data().updatedAt.toDate().toISOString()
+            ? typeof doc.data().updatedAt.toDate === "function"
+              ? doc.data().updatedAt.toDate().toISOString()
+              : doc.data().updatedAt
             : null,
         });
       });
@@ -50,6 +56,7 @@ export const fetchHabits = createAsyncThunk(
       // Cache habits locally
       await AsyncStorage.setItem(`habits_${uid}`, JSON.stringify(habits));
 
+      console.log("Habits fetched from Firestore:", habits);
       return habits;
     } catch (error) {
       // Try to get habits from local storage
@@ -255,12 +262,20 @@ export const completeHabit = createAsyncThunk(
         // Dispatch action to update user stats in auth state
         dispatch(
           updateUserProfile({
+            displayName: getState().auth.user.displayName,
+            preferences: getState().auth.user.preferences,
             stats: {
               ...getState().auth.user.stats,
-              totalHabitsCompleted:
-                getState().auth.user.stats.totalHabitsCompleted + 1,
-              currentStreak: getState().auth.user.stats.currentStreak + 1,
-              xpPoints: getState().auth.user.stats.xpPoints + 10,
+              totalHabitsCompleted: getState().auth.user.stats
+                ?.totalHabitsCompleted
+                ? getState().auth.user.stats.totalHabitsCompleted + 1
+                : 1,
+              currentStreak: getState().auth.user.stats?.currentStreak
+                ? getState().auth.user.stats.currentStreak + 1
+                : 1,
+              xpPoints: getState().auth.user.stats?.xpPoints
+                ? getState().auth.user.stats.xpPoints + 10
+                : 10,
             },
           })
         );
@@ -299,7 +314,7 @@ export const deleteHabit = createAsyncThunk(
 
       // Dispatch fetchHabits to refresh the list
       console.log("Dispatching fetchHabits after archiving");
-      dispatch(fetchHabits());
+      await dispatch(fetchHabits());
 
       // Clear cached habits in AsyncStorage
       const { uid } = getState().auth.user;
@@ -346,6 +361,7 @@ const habitsSlice = createSlice({
 
         // Filter daily habits for quick access
         const today = new Date().getDay();
+        console.log("Habits after fetch:", action.payload);
         state.dailyHabits = action.payload.filter((habit) => {
           if (habit.frequency.type === "daily") return true;
           if (

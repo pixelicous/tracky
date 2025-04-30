@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../services/api/firebase";
 import {
   View,
   StyleSheet,
@@ -7,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -16,7 +19,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
-import { updateUserProfile } from "../../store/slices/authSlice";
+import { updateUserProfile, setUser } from "../../store/slices/authSlice";
 import { Container, Card, Button, Loading } from "../../components/common";
 import {
   Title,
@@ -47,6 +50,48 @@ const ProfileScreen = ({ navigation }) => {
   useEffect(() => {
     dispatch(fetchUserSubscription());
   }, [dispatch]);
+
+  // Fetch user data on focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchProfileData = async () => {
+        setLoading(true);
+        try {
+          // Fetch user data from Firestore
+          if (!user) {
+            console.log("User is null, skipping fetchProfileData");
+            return;
+          }
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            // Update user data in Redux store
+            dispatch(
+              setUser({
+                ...user,
+                ...data,
+                createdAt: data.createdAt?.toDate().toISOString() || null,
+                lastActive: data.lastActive?.toDate().toISOString() || null,
+                updatedAt: data.updatedAt?.toDate().toISOString() || null,
+              })
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching profile data:", error);
+          Alert.alert(
+            "Error",
+            "Failed to load profile data. Please try again."
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchProfileData();
+    }, [user?.uid, dispatch])
+  );
 
   // Calculate level progress
   const calculateLevelProgress = () => {
@@ -460,7 +505,7 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.profileImageWrapper}
                 onPress={handleChangeProfileImage}
-                disabled={loading}
+                disabled={isUploading}
               >
                 {user?.photoURL ? (
                   <Image

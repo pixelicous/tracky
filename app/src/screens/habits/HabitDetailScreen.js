@@ -78,7 +78,10 @@ const HabitDetailScreen = ({ route, navigation }) => {
   }, [navigation, habit]);
 
   const handleEdit = () => {
-    navigation.navigate("EditHabit", { habit });
+    navigation.navigate("HabitsTab", {
+      screen: "EditHabit",
+      params: { habitId: habit.id },
+    });
   };
 
   const handleDelete = () => {
