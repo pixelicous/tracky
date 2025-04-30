@@ -67,7 +67,7 @@ export default function App() {
 
         // Set up auth listener for future auth state changes
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          if (user) {
+          if (user && !store.getState().auth.user) {
             // Only update if there's an actual Firebase user
             store.dispatch(setUser(user));
           }
