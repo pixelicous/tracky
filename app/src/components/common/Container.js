@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { useSelector } from "react-redux";
 import { theme } from "../../theme";
 
 const Container = ({
@@ -19,6 +20,10 @@ const Container = ({
   ...props
 }) => {
   const ContainerComponent = scrollable || withScrollView ? ScrollView : View;
+
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const currentThemeColors =
+    currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
 
   const content = (
     <ContainerComponent
@@ -33,13 +38,26 @@ const Container = ({
 
   if (keyboardAvoiding) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView
+        style={[
+          styles.safeArea,
+          { backgroundColor: currentThemeColors.background },
+        ]}
+      >
         <StatusBar
           barStyle="dark-content"
           backgroundColor={theme.colors.white}
         />
         <KeyboardAvoidingView
-          style={styles.keyboardAvoiding}
+          style={[
+            styles.keyboardAvoiding,
+            {
+              backgroundColor:
+                currentTheme === "dark"
+                  ? currentThemeColors.background
+                  : theme.colors.background,
+            },
+          ]}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 50 : 20}
         >
@@ -50,8 +68,25 @@ const Container = ({
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.white} />
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        {
+          backgroundColor:
+            currentTheme === "dark"
+              ? currentThemeColors.background
+              : theme.colors.background,
+        },
+      ]}
+    >
+      <StatusBar
+        barStyle={currentTheme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={
+          currentTheme === "dark"
+            ? currentThemeColors.background
+            : theme.colors.white
+        }
+      />
       {content}
     </SafeAreaView>
   );
@@ -60,11 +95,9 @@ const Container = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
     padding: theme.spacing.medium,
   },
   scrollContainer: {

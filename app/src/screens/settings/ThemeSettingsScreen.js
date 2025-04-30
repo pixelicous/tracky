@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useColorScheme } from "react-native";
 import {
   View,
   StyleSheet,
@@ -24,6 +25,12 @@ import { theme } from "../../theme";
 const ThemeSettingsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const currentTheme = useSelector((state) => state.ui.theme);
+  const systemColorScheme = useColorScheme();
+  console.log("systemColorScheme:", systemColorScheme);
+  const isDarkMode =
+    currentTheme === "dark" ||
+    (currentTheme === "system" && systemColorScheme === "dark");
+  const currentThemeColors = isDarkMode ? theme.colors.darkMode : theme.colors;
   const { user } = useSelector((state) => state.auth);
   const { subscription } = useSelector((state) => state.premium);
 
@@ -185,7 +192,6 @@ const ThemeSettingsScreen = ({ navigation }) => {
     },
     cardSubtitle: {
       textAlign: "center",
-      color: theme.colors.gray,
       marginBottom: theme.spacing.medium,
     },
     switchItem: {
@@ -271,10 +277,12 @@ const ThemeSettingsScreen = ({ navigation }) => {
               value={darkMode}
               onValueChange={toggleDarkMode}
               trackColor={{
-                false: theme.colors.lightGray,
-                true: `${theme.colors.primary}80`,
+                false: currentThemeColors.lightGray,
+                true: `${currentThemeColors.primary}80`,
               }}
-              thumbColor={darkMode ? theme.colors.primary : theme.colors.gray}
+              thumbColor={
+                darkMode ? currentThemeColors.primary : currentThemeColors.gray
+              }
               disabled={systemTheme}
             />
           </View>
@@ -289,11 +297,13 @@ const ThemeSettingsScreen = ({ navigation }) => {
               value={systemTheme}
               onValueChange={toggleSystemTheme}
               trackColor={{
-                false: theme.colors.lightGray,
-                true: `${theme.colors.primary}80`,
+                false: currentThemeColors.lightGray,
+                true: `${currentThemeColors.primary}80`,
               }}
               thumbColor={
-                systemTheme ? theme.colors.primary : theme.colors.gray
+                systemTheme
+                  ? currentThemeColors.primary
+                  : currentThemeColors.gray
               }
             />
           </View>
@@ -331,7 +341,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
                     <Ionicons
                       name={themeOption.icon}
                       size={20}
-                      color="#FFFFFF"
+                      color={currentThemeColors.white}
                     />
 
                     {isPremiumLocked && (

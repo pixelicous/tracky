@@ -28,6 +28,9 @@ import { theme } from "../../theme";
 const DashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const dispatch = useDispatch();
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const currentThemeColors =
+    currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
 
   const { user } = useSelector((state) => state.auth);
   const { dailyHabits, loading } = useSelector((state) => state.habits);
@@ -81,7 +84,12 @@ const DashboardScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: currentThemeColors.background },
+      ]}
+    >
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -110,7 +118,7 @@ const DashboardScreen = ({ navigation }) => {
                 <Ionicons
                   name="person"
                   size={24}
-                  color={theme.colors.primary}
+                  color={currentThemeColors.primary}
                 />
               </View>
             )}
@@ -160,7 +168,7 @@ const DashboardScreen = ({ navigation }) => {
                 size={80}
                 strokeWidth={10}
                 progress={todayProgress}
-                color={theme.colors.primary}
+                color={currentThemeColors.primary}
               >
                 <Body style={styles.progressPercent}>
                   {Math.round(todayProgress * 100)}%
@@ -178,7 +186,7 @@ const DashboardScreen = ({ navigation }) => {
               <Ionicons
                 name="add-circle"
                 size={24}
-                color={theme.colors.primary}
+                color={currentThemeColors.primary}
               />
               <Body style={styles.addButtonText}>Add</Body>
             </TouchableOpacity>
@@ -189,7 +197,7 @@ const DashboardScreen = ({ navigation }) => {
               <Ionicons
                 name="calendar-outline"
                 size={48}
-                color={theme.colors.gray}
+                color={currentThemeColors.gray}
                 style={styles.emptyStateIcon}
               />
               <Body style={styles.emptyStateText}>
@@ -219,7 +227,11 @@ const DashboardScreen = ({ navigation }) => {
         {stats.currentStreak > 0 && (
           <Card style={styles.streakCard}>
             <View style={styles.streakContent}>
-              <Ionicons name="flame" size={24} color={theme.colors.warning} />
+              <Ionicons
+                name="flame"
+                size={24}
+                color={currentThemeColors.warning}
+              />
               <Body style={styles.streakText}>
                 Your streak is on fire! Keep going for {stats.currentStreak}{" "}
                 {stats.currentStreak === 1 ? "day" : "days"} now!
@@ -234,7 +246,7 @@ const DashboardScreen = ({ navigation }) => {
               <Ionicons
                 name="diamond"
                 size={24}
-                color={theme.colors.secondary}
+                color={currentThemeColors.secondary}
               />
               <View style={styles.premiumTextContainer}>
                 <Body style={styles.premiumTitle}>Unlock Premium Features</Body>
@@ -261,7 +273,6 @@ const DashboardScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
@@ -290,7 +301,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: `${theme.colors.primary}20`,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -306,7 +316,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   progressText: {
-    color: theme.colors.darkGray,
     marginTop: 4,
     marginBottom: 16,
   },
@@ -344,7 +353,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addButtonText: {
-    color: theme.colors.primary,
     marginLeft: 4,
   },
   emptyStateCard: {
@@ -356,20 +364,17 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     textAlign: "center",
-    color: theme.colors.darkGray,
     marginBottom: theme.spacing.medium,
   },
   emptyStateButton: {
-    backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.medium,
     paddingVertical: theme.spacing.small,
     borderRadius: theme.borderRadius.medium,
   },
   emptyStateButtonText: {
-    color: theme.colors.white,
+    fontFamily: theme.fonts.semiBold,
   },
   streakCard: {
-    backgroundColor: `${theme.colors.warning}10`,
     marginBottom: theme.spacing.medium,
   },
   streakContent: {
@@ -381,7 +386,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   premiumCard: {
-    backgroundColor: `${theme.colors.secondary}10`,
     marginBottom: theme.spacing.large,
   },
   premiumContent: {
@@ -397,13 +401,11 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.semiBold,
   },
   premiumButton: {
-    backgroundColor: theme.colors.secondary,
     paddingVertical: theme.spacing.small,
     borderRadius: theme.borderRadius.medium,
     alignItems: "center",
   },
   premiumButtonText: {
-    color: theme.colors.white,
     fontFamily: theme.fonts.semiBold,
   },
 });

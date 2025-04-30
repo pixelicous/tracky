@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   View,
 } from "react-native";
+import { useSelector } from "react-redux";
 import { theme } from "../../theme";
 
 const Button = ({
@@ -85,6 +86,10 @@ const Button = ({
     return textStyleArray;
   };
 
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const currentThemeColors =
+    currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
+
   return (
     <TouchableOpacity
       style={[...getButtonStyle(), style]}
@@ -95,7 +100,15 @@ const Button = ({
     >
       {loading ? (
         <ActivityIndicator
-          color={type === "primary" ? theme.colors.white : theme.colors.primary}
+          color={
+            type === "primary"
+              ? currentTheme === "dark"
+                ? currentThemeColors.white
+                : theme.colors.white
+              : currentTheme === "dark"
+              ? currentThemeColors.primary
+              : theme.colors.primary
+          }
           size="small"
         />
       ) : (
@@ -133,7 +146,6 @@ const styles = StyleSheet.create({
   outlineButton: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: theme.colors.primary,
   },
   textButton: {
     backgroundColor: "transparent",
@@ -152,8 +164,6 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   disabledButton: {
-    backgroundColor: theme.colors.lightGray,
-    borderColor: theme.colors.lightGray,
     ...theme.shadows.none,
   },
   contentContainer: {
@@ -166,27 +176,17 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSizes.medium,
     textAlign: "center",
   },
-  primaryText: {
-    color: theme.colors.white,
-  },
-  secondaryText: {
-    color: theme.colors.white,
-  },
-  outlineText: {
-    color: theme.colors.primary,
-  },
-  textOnlyText: {
-    color: theme.colors.primary,
-  },
+  primaryText: {},
+  secondaryText: {},
+  outlineText: {},
+  textOnlyText: {},
   smallText: {
     fontSize: theme.fontSizes.small,
   },
   largeText: {
     fontSize: theme.fontSizes.large,
   },
-  disabledText: {
-    color: theme.colors.darkGray,
-  },
+  disabledText: {},
   iconLeft: {
     marginRight: 8,
   },

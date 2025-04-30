@@ -7,6 +7,7 @@ import {
   Text,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
 import { theme } from "../../theme";
 
 const Input = ({
@@ -25,6 +26,10 @@ const Input = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const currentThemeColors =
+    currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
 
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -55,7 +60,11 @@ const Input = ({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={theme.colors.gray}
+          placeholderTextColor={
+            currentTheme === "dark"
+              ? currentThemeColors.gray
+              : theme.colors.gray
+          }
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           multiline={multiline}
           numberOfLines={multiline ? numberOfLines : 1}
@@ -73,7 +82,11 @@ const Input = ({
             <Ionicons
               name={isPasswordVisible ? "eye-off" : "eye"}
               size={20}
-              color={theme.colors.darkGray}
+              color={
+                currentTheme === "dark"
+                  ? currentThemeColors.darkGray
+                  : theme.colors.darkGray
+              }
             />
           </TouchableOpacity>
         )}
@@ -91,23 +104,17 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: theme.fonts.medium,
     fontSize: theme.fontSizes.small,
-    color: theme.colors.darkGray,
     marginBottom: theme.spacing.xs,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: theme.colors.lightGray,
+    borderColor: theme.colors.inputBorder,
     borderRadius: theme.borderRadius.small,
-    backgroundColor: theme.colors.white,
   },
-  inputFocused: {
-    borderColor: theme.colors.primary,
-  },
-  inputError: {
-    borderColor: theme.colors.error,
-  },
+  inputFocused: {},
+  inputError: {},
   multilineInput: {
     minHeight: 100,
     alignItems: "flex-start",
@@ -116,12 +123,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: theme.fonts.regular,
     fontSize: theme.fontSizes.medium,
-    color: theme.colors.black,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   inputWithIcon: {
-    paddingLeft: 8,
+    paddingLeft: 12,
   },
   inputWithButton: {
     paddingRight: 40,

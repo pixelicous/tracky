@@ -13,7 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { firestore } from "../../services/api/firebase";
+import { db } from "../../services/api/firebase";
 import { fetchChallenges } from "../../store/slices/socialSlice";
 import { Container, Card, Button, Loading } from "../../components/common";
 import {
@@ -200,7 +200,7 @@ const CreateChallengeScreen = ({ navigation, route }) => {
       };
 
       // Add challenge to Firestore
-      await addDoc(collection(firestore, "challenges"), challengeData);
+      await addDoc(collection(db, "challenges"), challengeData);
 
       // Refresh challenges
       dispatch(fetchChallenges());
