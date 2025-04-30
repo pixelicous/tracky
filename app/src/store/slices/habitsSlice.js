@@ -246,36 +246,41 @@ export const completeHabit = createAsyncThunk(
         console.log("Updating user stats for UID:", uid);
         const userRef = doc(db, "users", uid);
 
-        // Need to import increment
-        const { increment } = require("firebase/firestore");
+        try {
+          // Need to import increment
+          const { increment } = require("firebase/firestore");
 
-        await updateDoc(userRef, {
-          "stats.totalHabitsCompleted": increment(1),
-          "stats.currentStreak": increment(1),
-          "stats.xpPoints": increment(10), // Basic XP for completion
-          updatedAt: serverTimestamp(),
-        });
+          // Update stats in Firestore
+          await updateDoc(userRef, {
+            "stats.totalHabitsCompleted": increment(1),
+            "stats.currentStreak": increment(1),
+            "stats.xpPoints": increment(10), // Basic XP for completion
+            updatedAt: serverTimestamp(),
+          });
+          console.log("User stats updated in Firestore");
 
-        // Dispatch action to update user stats in auth state
-        dispatch(
-          updateUserProfile({
-            displayName: getState().auth.user.displayName,
-            preferences: getState().auth.user.preferences,
-            stats: {
-              ...getState().auth.user.stats,
-              totalHabitsCompleted: getState().auth.user.stats
-                ?.totalHabitsCompleted
-                ? getState().auth.user.stats.totalHabitsCompleted + 1
-                : 1,
-              currentStreak: getState().auth.user.stats?.currentStreak
-                ? getState().auth.user.stats.currentStreak + 1
-                : 1,
-              xpPoints: getState().auth.user.stats?.xpPoints
-                ? getState().auth.user.stats.xpPoints + 10
-                : 10,
-            },
-          })
-        );
+          // Get current user stats
+          const currentStats = getState().auth.user.stats || {};
+
+          // Calculate updated stats
+          const updatedStats = {
+            ...currentStats,
+            totalHabitsCompleted: (currentStats.totalHabitsCompleted || 0) + 1,
+            currentStreak: (currentStats.currentStreak || 0) + 1,
+            xpPoints: (currentStats.xpPoints || 0) + 10,
+          };
+
+          console.log("Updated stats:", updatedStats);
+
+          // Dispatch action to update user stats in auth state
+          dispatch(
+            updateUserProfile({
+              stats: updatedStats,
+            })
+          );
+        } catch (statsError) {
+          console.error("Error updating user stats:", statsError);
+        }
       }
 
       return {
@@ -296,7 +301,7 @@ export const completeHabit = createAsyncThunk(
 
 export const deleteHabit = createAsyncThunk(
   "habits/deleteHabit",
-  async (id, { rejectWithValue, dispatch }) => {
+  async (id, { rejectWithValue, dispatch, getState }) => {
     console.log("deleteHabit thunk started", id);
     try {
       // Instead of actually deleting, we archive the habit

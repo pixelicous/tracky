@@ -158,18 +158,45 @@ export const updateUserProfile = createAsyncThunk(
   async (userData, { getState, rejectWithValue }) => {
     try {
       const { uid } = getState().auth.user;
+
+      if (!uid) {
+        console.error("User UID is undefined");
+        return rejectWithValue("User UID is undefined");
+      }
+
+      console.log("Updating profile for user:", uid);
+      console.log("Update data:", userData);
+
       const userDocRef = doc(db, "users", uid);
 
-      await updateDoc(userDocRef, {
-        displayName: userData.displayName || "",
-        bio: userData.bio || "",
-        preferences: userData.preferences || {},
+      // Create update object with only defined fields
+      const updateData = {
         updatedAt: serverTimestamp(),
-      });
+      };
 
-      return userData;
+      if (userData.displayName !== undefined)
+        updateData.displayName = userData.displayName;
+      if (userData.bio !== undefined) updateData.bio = userData.bio;
+      if (userData.photoURL !== undefined)
+        updateData.photoURL = userData.photoURL;
+      if (userData.preferences !== undefined)
+        updateData.preferences = userData.preferences;
+      if (userData.stats !== undefined) updateData.stats = userData.stats;
+
+      console.log("Update object:", updateData);
+
+      await updateDoc(userDocRef, updateData);
+      console.log("Profile updated successfully");
+
+      // Return the complete user data to ensure state is properly updated
+      return {
+        ...getState().auth.user,
+        ...userData,
+      };
     } catch (error) {
-      console.error("Error updating profile:", error.message);
+      console.error("Error updating profile:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
       return rejectWithValue(error.message);
     }
   }
@@ -325,12 +352,8 @@ const authSlice = createSlice({
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.isLoading = false;
-        const updatedUser = {
-          ...state.user,
-          displayName: action.payload.displayName,
-          bio: action.payload.bio,
-          photoURL: action.payload.photoURL, // Update photoURL
-        };
+        // Use the complete user object returned from the thunk
+        const updatedUser = action.payload;
         state.user = updatedUser;
         AsyncStorage.setItem("user", JSON.stringify(updatedUser)); // Update AsyncStorage
         console.log(

@@ -17,7 +17,9 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
-import { updateUserProfile } from "../../store/slices/authSlice";
+import { doc, getDoc } from "firebase/firestore";
+import { updateUserProfile, setUser } from "../../store/slices/authSlice";
+import { db, auth } from "../../services/api/firebase";
 import { Container, Card, Button, Loading } from "../../components/common";
 import {
   Title,
@@ -50,30 +52,76 @@ const ProfileScreen = ({ navigation }) => {
   }, [dispatch]);
 
   // Fetch user data on focus
+  // Log authentication state for debugging
+  useEffect(() => {
+    const logAuthState = async () => {
+      try {
+        console.log("Redux auth state:", user);
+        console.log("Firebase auth state:", auth.currentUser);
+      } catch (error) {
+        console.error("Error logging auth state:", error);
+      }
+    };
+
+    logAuthState();
+  }, [user]);
+
   useFocusEffect(
     useCallback(() => {
       const fetchProfileData = async () => {
         setLoading(true);
         try {
+          // Debug user object
+          console.log("Current user object:", user);
+          console.log("User UID:", user?.uid);
+
+          if (!user || !user.uid) {
+            console.error("User or user.uid is undefined");
+            setLoading(false);
+            return;
+          }
+
           // Fetch user data from Firestore
           const userDocRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userDocRef);
+          console.log("Attempting to fetch document:", userDocRef.path);
 
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            // Update user data in Redux store
-            dispatch(
-              setUser({
-                ...user,
-                ...data,
-                createdAt: data.createdAt?.toDate().toISOString() || null,
-                lastActive: data.lastActive?.toDate().toISOString() || null,
-                updatedAt: data.updatedAt?.toDate().toISOString() || null,
-              })
+          try {
+            const userDoc = await getDoc(userDocRef);
+            console.log("Document exists:", userDoc.exists());
+
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              console.log("Document data:", data);
+
+              // Update user data in Redux store
+              dispatch(
+                setUser({
+                  ...user,
+                  ...data,
+                  createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+                  lastActive:
+                    data.lastActive?.toDate?.()?.toISOString() || null,
+                  updatedAt: data.updatedAt?.toDate?.()?.toISOString() || null,
+                })
+              );
+            } else {
+              console.log(
+                "User document doesn't exist, using Redux store data"
+              );
+              // Continue with the data from Redux store
+            }
+          } catch (docError) {
+            console.error("Error getting document:", docError);
+            console.error("Error code:", docError.code);
+            console.error("Error message:", docError.message);
+            console.log(
+              "Continuing with Redux store data despite Firestore error"
             );
+            // Continue with the data from Redux store despite the error
           }
         } catch (error) {
           console.error("Error fetching profile data:", error);
+          console.error("Error details:", JSON.stringify(error));
           Alert.alert(
             "Error",
             "Failed to load profile data. Please try again."
@@ -110,11 +158,25 @@ const ProfileScreen = ({ navigation }) => {
 
   // Handle profile image selection and upload
   const handleChangeProfileImage = async () => {
+    console.log("Starting profile image change process");
+
+    // Check if user is authenticated via Redux store
+    if (!user || !user.uid) {
+      console.error("User is not authenticated (Redux store)");
+      Alert.alert(
+        "Authentication Error",
+        "You need to be logged in to change your profile image."
+      );
+      return;
+    }
+
     // Request permissions
+    console.log("Requesting media library permissions");
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
+      console.log("Permission denied");
       Alert.alert(
         "Permission Denied",
         "You need to grant permission to access your photos."
@@ -123,6 +185,7 @@ const ProfileScreen = ({ navigation }) => {
     }
 
     // Launch image picker
+    console.log("Launching image picker");
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       // mediaTypes: ImagePicker.MediaType.All,
       allowsEditing: true,
@@ -131,25 +194,33 @@ const ProfileScreen = ({ navigation }) => {
     });
 
     if (pickerResult.canceled) {
+      console.log("Image picker canceled");
       return;
     }
 
     try {
       setIsUploading(true);
       setLoading(true);
+      console.log("Image selected, preparing for upload");
 
       // Get image URI
       const uri = pickerResult.assets[0].uri;
+      console.log("Image URI:", uri);
 
       // Convert URI to blob
+      console.log("Converting URI to blob");
       const response = await fetch(uri);
       const blob = await response.blob();
+      console.log("Blob created, size:", blob.size);
 
       // Create storage reference
+      console.log("Creating storage reference");
       const storage = getStorage();
       const storageRef = ref(storage, `profileImages/${user.uid}`);
+      console.log("Storage reference path:", `profileImages/${user.uid}`);
 
       // Upload image
+      console.log("Starting upload");
       const uploadTask = uploadBytesResumable(storageRef, blob);
 
       // Monitor upload progress
@@ -158,9 +229,12 @@ const ProfileScreen = ({ navigation }) => {
         (snapshot) => {
           const progress = snapshot.bytesTransferred / snapshot.totalBytes;
           setUploadProgress(progress);
+          console.log("Upload progress:", Math.round(progress * 100) + "%");
         },
         (error) => {
           console.error("Upload error:", error);
+          console.error("Error code:", error.code);
+          console.error("Error message:", error.message);
           Alert.alert(
             "Upload Failed",
             "Failed to upload profile image. Please try again."
@@ -170,34 +244,70 @@ const ProfileScreen = ({ navigation }) => {
         },
         async () => {
           // Upload complete, get download URL
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          console.log("Upload complete, getting download URL");
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log("Download URL:", downloadURL);
 
-          // Update user profile
-          dispatch(
-            updateUserProfile({
-              photoURL: downloadURL,
-              displayName: user.displayName, // Include current displayName
-              bio: user.bio, // Include current bio
-            })
-          )
-            .unwrap()
-            .then(() => {
+            // Update user profile with only the photoURL
+            console.log("Updating user profile with new photo URL");
+
+            try {
+              await dispatch(
+                updateUserProfile({
+                  photoURL: downloadURL,
+                })
+              ).unwrap();
+
+              console.log("Profile updated successfully");
+
+              // Update local user state directly in case Firestore update fails
+              dispatch(
+                setUser({
+                  ...user,
+                  photoURL: downloadURL,
+                })
+              );
+
               setIsUploading(false);
               setLoading(false);
-            })
-            .catch((error) => {
-              console.error("Profile update error:", error);
               Alert.alert(
-                "Update Failed",
-                "Failed to update profile image. Please try again."
+                "Success",
+                "Your profile image has been updated successfully."
+              );
+            } catch (updateError) {
+              console.error("Profile update error:", updateError);
+
+              // Even if Firestore update fails, update local Redux state
+              console.log("Updating local Redux state despite Firestore error");
+              dispatch(
+                setUser({
+                  ...user,
+                  photoURL: downloadURL,
+                })
+              );
+
+              Alert.alert(
+                "Partial Success",
+                "Your profile image was uploaded but there was an issue updating your profile. The image will be available after you restart the app."
               );
               setIsUploading(false);
               setLoading(false);
-            });
+            }
+          } catch (urlError) {
+            console.error("Error getting download URL:", urlError);
+            Alert.alert(
+              "Error",
+              "Failed to get download URL for the uploaded image."
+            );
+            setIsUploading(false);
+            setLoading(false);
+          }
         }
       );
     } catch (error) {
       console.error("Image selection error:", error);
+      console.error("Error details:", JSON.stringify(error));
       Alert.alert(
         "Error",
         "There was an error selecting or uploading the image. Please try again."
