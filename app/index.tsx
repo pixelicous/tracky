@@ -13,7 +13,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import {
   setUser,
   loadUserFromStorage,
-  fetchUserData,
+  initializeAuthListener,
 } from "./src/store/slices/authSlice";
 import {
   setFirstLaunch,
@@ -62,30 +62,24 @@ export default function App() {
         );
         store.dispatch(setOnboardingComplete(onboardingComplete === "true"));
 
-        // Load user from AsyncStorage using the thunk to quickly show cached data
-        await store.dispatch(loadUserFromStorage());
+        // Load user from AsyncStorage using the thunk
+        const result = await store.dispatch(loadUserFromStorage());
         console.log("Attempted to restore user session from AsyncStorage");
 
-        // Set up auth listener and wait for initial auth state
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-          console.log(
-            "onAuthStateChanged triggered. User:",
-            user ? user.uid : "null"
-          );
-          // Set the user in the Redux store based on the auth state
-          store.dispatch(setUser(user)); // Set user to null if not logged in
+        // If we have a user in AsyncStorage, set it in the Redux store
+        if (result.payload) {
+          console.log("User found in AsyncStorage, restoring session");
+          store.dispatch(setUser(result.payload));
+        }
 
-          if (user) {
-            // If a user is logged in, fetch fresh user data
-            await store.dispatch(fetchUserData());
-          }
+        // Set user loaded to true regardless of authentication status
+        setUserLoaded(true);
 
-          // Set user loaded to true after initial auth state is determined
-          setUserLoaded(true);
-        });
+        // Set up auth listener for future auth state changes
+        await store.dispatch(initializeAuthListener());
+        console.log("Firebase Auth state listener initialized");
 
-        // Clean up the listener on unmount
-        return () => unsubscribe();
+        return () => {}; // No need to return unsubscribe as it's handled in the thunk
       } catch (e) {
         console.warn("Error loading app:", e);
       } finally {
