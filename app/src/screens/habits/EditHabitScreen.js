@@ -25,7 +25,10 @@ const EditHabitScreen = ({ route, navigation }) => {
     dispatch(updateHabit({ id: habit.id, habitData }))
       .unwrap()
       .then(() => {
-        navigation.goBack();
+        // Instead of goBack(), explicitly navigate back to HabitDetail with the updated habit
+        navigation.navigate("HabitDetail", {
+          habit: { ...habit, ...habitData },
+        });
       })
       .catch((error) => {
         Alert.alert("Error", "Failed to update habit. Please try again.");

@@ -12,10 +12,11 @@ import {
   orderBy,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../../services/api/firebase";
+import { db, auth } from "../../services/api/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { updateUserProfile } from "../../store/slices/authSlice";
 import { increment } from "firebase/firestore"; // Ensure increment is imported top-level
+import { ensureFreshAuthToken } from "../../utils/authUtils";
 
 // Async thunks for habits
 export const fetchHabits = createAsyncThunk(
@@ -23,7 +24,15 @@ export const fetchHabits = createAsyncThunk(
   async (_, { getState, rejectWithValue }) => {
     try {
       console.log("fetchHabits thunk called");
-      const { uid } = getState().auth.user;
+
+      // Check if user is authenticated
+      const user = getState().auth.user;
+      if (!user || !user.uid) {
+        console.error("User not authenticated");
+        return rejectWithValue("User not authenticated");
+      }
+
+      const uid = user.uid;
       console.log("User ID:", uid);
 
       // Get habits from Firestore
@@ -33,6 +42,17 @@ export const fetchHabits = createAsyncThunk(
         where("isArchived", "==", false),
         orderBy("createdAt", "desc")
       );
+
+      // Ensure fresh auth token before Firestore operation
+      const tokenRefreshed = await ensureFreshAuthToken();
+      if (!tokenRefreshed) {
+        console.error(
+          "Authentication failed. Please sign out and sign in again."
+        );
+        return rejectWithValue(
+          "Authentication error: Please sign out and sign in again to refresh your session"
+        );
+      }
 
       const querySnapshot = await getDocs(habitsQuery);
       const habits = [];
@@ -81,9 +101,18 @@ export const createHabit = createAsyncThunk(
   async (habitData, { getState, rejectWithValue }) => {
     try {
       console.log("Creating habit:", habitData);
-      const { uid } = getState().auth.user;
+
+      // Check if user is authenticated
+      const user = getState().auth.user;
+      if (!user || !user.uid) {
+        console.error("User not authenticated");
+        return rejectWithValue("User not authenticated");
+      }
+
+      const uid = user.uid;
       console.log("User ID:", uid);
 
+      // Ensure userId is explicitly set
       const newHabit = {
         ...habitData,
         userId: uid,
@@ -98,6 +127,23 @@ export const createHabit = createAsyncThunk(
       };
 
       console.log("New habit object:", newHabit);
+
+      // Verify the habit has a userId before adding to Firestore
+      if (!newHabit.userId) {
+        console.error("Missing userId in habit data");
+        return rejectWithValue("Missing userId in habit data");
+      }
+
+      // Ensure fresh auth token before Firestore operation
+      const tokenRefreshed = await ensureFreshAuthToken();
+      if (!tokenRefreshed) {
+        console.error(
+          "Authentication failed. Please sign out and sign in again."
+        );
+        return rejectWithValue(
+          "Authentication error: Please sign out and sign in again to refresh your session"
+        );
+      }
 
       const docRef = await addDoc(collection(db, "habits"), newHabit);
 
@@ -126,14 +172,58 @@ export const createHabit = createAsyncThunk(
 
 export const updateHabit = createAsyncThunk(
   "habits/updateHabit",
-  async ({ id, habitData }, { rejectWithValue }) => {
+  async ({ id, habitData }, { getState, rejectWithValue }) => {
     try {
+      // Check if user is authenticated
+      const user = getState().auth.user;
+      if (!user || !user.uid) {
+        console.error("User not authenticated");
+        return rejectWithValue("User not authenticated");
+      }
+
       const habitRef = doc(db, "habits", id);
 
-      await updateDoc(habitRef, {
+      // Get the habit first to verify ownership
+      const habitSnap = await getDoc(habitRef);
+
+      if (!habitSnap.exists()) {
+        console.error("Habit not found");
+        return rejectWithValue("Habit not found");
+      }
+
+      const habitData_current = habitSnap.data();
+
+      // Verify the habit belongs to the current user
+      if (habitData_current.userId !== user.uid) {
+        console.error(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+        return rejectWithValue(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+      }
+
+      console.log("Habit belongs to current user, proceeding with update");
+
+      // Ensure we're not overwriting the userId
+      const updateData = {
         ...habitData,
+        userId: user.uid, // Explicitly set userId to ensure it doesn't change
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      // Ensure fresh auth token before Firestore operation
+      const tokenRefreshed = await ensureFreshAuthToken();
+      if (!tokenRefreshed) {
+        console.error(
+          "Authentication failed. Please sign out and sign in again."
+        );
+        return rejectWithValue(
+          "Authentication error: Please sign out and sign in again to refresh your session"
+        );
+      }
+
+      await updateDoc(habitRef, updateData);
 
       // Fetch the updated habit
       const docSnap = await getDoc(habitRef);
@@ -158,12 +248,43 @@ export const completeHabit = createAsyncThunk(
   async ({ id, date, count = 1 }, { getState, dispatch, rejectWithValue }) => {
     try {
       console.log("completeHabit thunk started", { id, date, count });
+
+      // Check if user is authenticated
+      const user = getState().auth.user;
+      if (!user || !user.uid) {
+        console.error("User not authenticated");
+        return rejectWithValue("User not authenticated");
+      }
+
       const habitRef = doc(db, "habits", id);
+
+      // Get the habit first to verify ownership
+      const habitSnap = await getDoc(habitRef);
+
+      if (!habitSnap.exists()) {
+        console.error("Habit not found");
+        return rejectWithValue("Habit not found");
+      }
+
+      const habitData = habitSnap.data();
+
+      // Verify the habit belongs to the current user
+      if (habitData.userId !== user.uid) {
+        console.error(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+        return rejectWithValue(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+      }
+
+      console.log("Habit belongs to current user, proceeding with completion");
+
       const habits = getState().habits.items;
       const habit = habits.find((h) => h.id === id);
 
       if (!habit) {
-        return rejectWithValue("Habit not found");
+        return rejectWithValue("Habit not found in state");
       }
 
       const dateStr = date || new Date().toISOString().split("T")[0];
@@ -183,8 +304,20 @@ export const completeHabit = createAsyncThunk(
           [dateStr]: habit.progress.history[dateStr] + count,
         };
 
+        // Ensure fresh auth token before Firestore operation
+        const tokenRefreshed = await ensureFreshAuthToken();
+        if (!tokenRefreshed) {
+          console.error(
+            "Authentication failed. Please sign out and sign in again."
+          );
+          return rejectWithValue(
+            "Authentication error: Please sign out and sign in again to refresh your session"
+          );
+        }
+
         await updateDoc(habitRef, {
           "progress.history": newHistory,
+          userId: user.uid, // Explicitly include userId
           updatedAt: serverTimestamp(),
         });
         console.log(
@@ -236,6 +369,7 @@ export const completeHabit = createAsyncThunk(
         "progress.streak": newStreak,
         "progress.lastCompleted": currentDate.toISOString(),
         "progress.history": newHistory,
+        userId: user.uid, // Explicitly include userId
         updatedAt: serverTimestamp(),
       });
       console.log("Habit progress updated in Firestore", {
@@ -251,6 +385,17 @@ export const completeHabit = createAsyncThunk(
         const userRef = doc(db, "users", uid);
 
         // User stats update
+        // Ensure fresh auth token before Firestore operation
+        const tokenRefreshed = await ensureFreshAuthToken();
+        if (!tokenRefreshed) {
+          console.error(
+            "Authentication failed. Please sign out and sign in again."
+          );
+          return rejectWithValue(
+            "Authentication error: Please sign out and sign in again to refresh your session"
+          );
+        }
+
         await updateDoc(userRef, {
           "stats.totalHabitsCompleted": increment(1),
           // Note: currentStreak on user profile might not be accurate anymore
@@ -333,12 +478,45 @@ export const uncompleteHabit = createAsyncThunk(
   async ({ id }, { getState, dispatch, rejectWithValue }) => {
     try {
       console.log("uncompleteHabit thunk started", { id });
+
+      // Check if user is authenticated
+      const user = getState().auth.user;
+      if (!user || !user.uid) {
+        console.error("User not authenticated");
+        return rejectWithValue("User not authenticated");
+      }
+
       const habitRef = doc(db, "habits", id);
+
+      // Get the habit first to verify ownership
+      const habitSnap = await getDoc(habitRef);
+
+      if (!habitSnap.exists()) {
+        console.error("Habit not found");
+        return rejectWithValue("Habit not found");
+      }
+
+      const habitData = habitSnap.data();
+
+      // Verify the habit belongs to the current user
+      if (habitData.userId !== user.uid) {
+        console.error(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+        return rejectWithValue(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+      }
+
+      console.log(
+        "Habit belongs to current user, proceeding with uncompletion"
+      );
+
       const habits = getState().habits.items;
       const habit = habits.find((h) => h.id === id);
 
       if (!habit) {
-        return rejectWithValue("Habit not found");
+        return rejectWithValue("Habit not found in state");
       }
 
       const dateStr = new Date().toISOString().split("T")[0];
@@ -404,13 +582,40 @@ export const uncompleteHabit = createAsyncThunk(
 export const deleteHabit = createAsyncThunk(
   "habits/deleteHabit",
   async (id, { rejectWithValue, dispatch, getState }) => {
-    // Added getState here
     console.log("deleteHabit thunk started", id);
     try {
-      const habitRef = doc(db, "habits", id);
-      console.log("Habit ref:", habitRef);
+      // Check if user is authenticated
+      const user = getState().auth.user;
+      if (!user || !user.uid) {
+        console.error("User not authenticated");
+        return rejectWithValue("User not authenticated");
+      }
 
-      // Actually delete the document
+      // Get the habit first to verify ownership
+      const habitRef = doc(db, "habits", id);
+      const habitSnap = await getDoc(habitRef);
+
+      if (!habitSnap.exists()) {
+        console.error("Habit not found");
+        return rejectWithValue("Habit not found");
+      }
+
+      const habitData = habitSnap.data();
+
+      // Verify the habit belongs to the current user
+      if (habitData.userId !== user.uid) {
+        console.error(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+        return rejectWithValue(
+          "Permission denied: Habit doesn't belong to current user"
+        );
+      }
+
+      console.log("Habit ref:", habitRef);
+      console.log("Habit belongs to current user, proceeding with deletion");
+
+      // Delete the document
       await deleteDoc(habitRef);
       console.log("Habit deleted successfully");
 

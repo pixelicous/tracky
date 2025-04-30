@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../services/api/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storeAuthCredentials } from "../../utils/authUtils";
 
 // Async thunks for authentication
 export const registerUser = createAsyncThunk(
@@ -33,6 +34,9 @@ export const registerUser = createAsyncThunk(
 
       // Wait for the user to be fully authenticated
       await user.getIdToken(true);
+
+      // Store credentials for session restoration
+      await storeAuthCredentials(email, password);
 
       // Update profile with display name
       await firebaseUpdateProfile(user, { displayName });
@@ -96,6 +100,9 @@ export const signIn = createAsyncThunk(
       );
       const user = userCredential.user;
 
+      // Store credentials for session restoration
+      await storeAuthCredentials(email, password);
+
       // Update last active timestamp
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, {
@@ -144,6 +151,8 @@ export const signOut = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await firebaseSignOut(auth);
+      // Clear stored credentials
+      await AsyncStorage.removeItem("auth_credentials");
       return null;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -186,6 +195,33 @@ export const updateUserProfile = createAsyncThunk(
   }
 );
 
+// Refresh Firebase auth token
+export const refreshAuthToken = createAsyncThunk(
+  "auth/refreshAuthToken",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log("Attempting to refresh Firebase auth token");
+
+      // Get the current user from Firebase Auth
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        console.log("No current user in Firebase Auth");
+        return null;
+      }
+
+      // Force token refresh
+      await currentUser.getIdToken(true);
+      console.log("Firebase auth token refreshed successfully");
+
+      return true;
+    } catch (error) {
+      console.error("Error refreshing auth token:", error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const loadUserFromStorage = createAsyncThunk(
   "auth/loadUserFromStorage",
   async (_, { rejectWithValue, dispatch }) => {
@@ -196,8 +232,12 @@ export const loadUserFromStorage = createAsyncThunk(
 
         // After loading from storage, fetch fresh data if we have a user ID
         if (parsedUserData && parsedUserData.uid) {
-          // We'll dispatch fetchUserData after the state is updated
-          // This ensures the app loads quickly with cached data first
+          // Refresh the Firebase auth token
+          console.log("User found in storage, refreshing auth token");
+          await dispatch(refreshAuthToken()).unwrap();
+
+          // Then fetch fresh user data
+          dispatch(fetchUserData());
         }
 
         return {
@@ -449,6 +489,24 @@ const authSlice = createSlice({
         // We don't set the error in the state to avoid showing error messages
         // for background refreshes
         // The error is logged, but the state remains unchanged
+      })
+
+      // Handle refreshAuthToken
+      .addCase(refreshAuthToken.pending, (state) => {
+        // Don't set loading to true to avoid UI flicker
+        state.error = null;
+      })
+      .addCase(refreshAuthToken.fulfilled, (state, action) => {
+        // Token refreshed successfully, no need to update state
+        console.log("Auth token refreshed successfully");
+      })
+      .addCase(refreshAuthToken.rejected, (state, action) => {
+        console.error("Failed to refresh auth token:", action);
+        // If token refresh fails, we should clear the user state
+        // as the user is likely no longer authenticated
+        state.user = null;
+        state.isAuthenticated = false;
+        AsyncStorage.removeItem("user");
       });
   },
 });

@@ -5,6 +5,7 @@ import Modal from "./Modal";
 import Loading from "./Loading";
 import Container from "./Container";
 import SegmentedControl from "./SegmentedControl"; // Import SegmentedControl
+import AuthErrorModal from "./AuthErrorModal"; // Import AuthErrorModal
 import { Title, Heading, Subheading, Body, Caption } from "./Typography";
 
 export {
@@ -15,6 +16,7 @@ export {
   Loading,
   Container,
   SegmentedControl, // Export SegmentedControl
+  AuthErrorModal, // Export AuthErrorModal
   Title,
   Heading,
   Subheading,
@@ -30,6 +32,7 @@ export default {
   Loading,
   Container,
   SegmentedControl, // Export SegmentedControl in default export
+  AuthErrorModal, // Export AuthErrorModal in default export
   Title,
   Heading,
   Subheading,

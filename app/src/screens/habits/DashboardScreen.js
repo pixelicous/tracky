@@ -18,7 +18,12 @@ import {
   uncompleteHabit, // Import the new action
 } from "../../store/slices/habitsSlice";
 import { fetchUserStats } from "../../store/slices/progressSlice";
-import { Container, Card, Loading } from "../../components/common";
+import {
+  Container,
+  Card,
+  Loading,
+  AuthErrorModal,
+} from "../../components/common";
 import {
   Title,
   Heading,
@@ -32,15 +37,23 @@ import { theme } from "../../theme";
 
 const DashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const [showAuthError, setShowAuthError] = useState(false);
   const dispatch = useDispatch();
   const currentTheme = useSelector((state) => state.ui.theme);
   const currentThemeColors =
     currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
 
   const { user } = useSelector((state) => state.auth);
-  const { dailyHabits, loading } = useSelector((state) => state.habits);
+  const { dailyHabits, loading, error } = useSelector((state) => state.habits);
   const { stats } = useSelector((state) => state.progress);
   const { subscription } = useSelector((state) => state.premium);
+
+  // Check for authentication errors
+  useEffect(() => {
+    if (error && error.includes("Authentication error")) {
+      setShowAuthError(true);
+    }
+  }, [error]);
 
   // Fetch data when the screen is focused
   useFocusEffect(
@@ -113,6 +126,11 @@ const DashboardScreen = ({ navigation }) => {
         { backgroundColor: currentThemeColors.background },
       ]}
     >
+      {/* Authentication Error Modal */}
+      <AuthErrorModal
+        visible={showAuthError}
+        onClose={() => setShowAuthError(false)}
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
