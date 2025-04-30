@@ -15,6 +15,7 @@ import {
 import { db } from "../../services/api/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { updateUserProfile } from "../../store/slices/authSlice";
+import { increment } from "firebase/firestore"; // Ensure increment is imported top-level
 
 // Async thunks for habits
 export const fetchHabits = createAsyncThunk(
@@ -249,12 +250,13 @@ export const completeHabit = createAsyncThunk(
         console.log("Updating user stats for UID:", uid);
         const userRef = doc(db, "users", uid);
 
-        // Need to import increment
-        const { increment } = require("firebase/firestore");
-
+        // User stats update
         await updateDoc(userRef, {
           "stats.totalHabitsCompleted": increment(1),
-          "stats.currentStreak": increment(1),
+          // Note: currentStreak on user profile might not be accurate anymore
+          // It reflects the overall longest streak, not necessarily tied to one habit
+          // Let's keep it simple and only increment totalHabitsCompleted for now
+          // "stats.currentStreak": increment(1),
           "stats.xpPoints": increment(10), // Basic XP for completion
           updatedAt: serverTimestamp(),
         });
@@ -292,6 +294,106 @@ export const completeHabit = createAsyncThunk(
       };
     } catch (error) {
       console.error("Error completing habit:", error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Helper function to calculate streak from history
+const calculateStreakFromHistory = (history) => {
+  if (!history || Object.keys(history).length === 0) {
+    return { streak: 0, lastCompleted: null };
+  }
+
+  const dates = Object.keys(history).sort().reverse(); // Sort dates descending
+  const lastCompletedStr = dates[0];
+  let streak = 0;
+  let currentDate = new Date(lastCompletedStr);
+
+  for (let i = 0; i < dates.length; i++) {
+    const dateStr = dates[i];
+    const expectedDateStr = currentDate.toISOString().split("T")[0];
+
+    // Check if the date from history matches the expected consecutive date
+    if (dateStr === expectedDateStr) {
+      streak++;
+      currentDate.setDate(currentDate.getDate() - 1); // Move check to the previous day
+    } else {
+      // If there's a gap, the streak starting from lastCompletedStr ends here
+      break;
+    }
+  }
+
+  return { streak, lastCompleted: lastCompletedStr };
+};
+
+export const uncompleteHabit = createAsyncThunk(
+  "habits/uncompleteHabit",
+  async ({ id }, { getState, dispatch, rejectWithValue }) => {
+    try {
+      console.log("uncompleteHabit thunk started", { id });
+      const habitRef = doc(db, "habits", id);
+      const habits = getState().habits.items;
+      const habit = habits.find((h) => h.id === id);
+
+      if (!habit) {
+        return rejectWithValue("Habit not found");
+      }
+
+      const dateStr = new Date().toISOString().split("T")[0];
+
+      // Check if it was actually completed today
+      if (!habit.progress?.history || !habit.progress.history[dateStr]) {
+        console.log("Habit was not completed today, cannot uncomplete.");
+        // Optionally return current state or reject
+        return rejectWithValue("Habit not completed today");
+      }
+
+      // Create new history without today's entry
+      const newHistory = { ...habit.progress.history };
+      delete newHistory[dateStr];
+
+      // Recalculate streak and last completed date from the remaining history
+      const { streak: newStreak, lastCompleted: newLastCompletedStr } =
+        calculateStreakFromHistory(newHistory);
+
+      const newLastCompletedISO = newLastCompletedStr
+        ? new Date(newLastCompletedStr).toISOString()
+        : null;
+
+      // Update Firestore
+      await updateDoc(habitRef, {
+        "progress.history": newHistory,
+        "progress.streak": newStreak,
+        "progress.lastCompleted": newLastCompletedISO,
+        updatedAt: serverTimestamp(),
+      });
+      console.log("Habit progress updated in Firestore (uncompleted)", {
+        newStreak,
+        lastCompleted: newLastCompletedISO,
+        newHistory,
+      });
+
+      // Optional: Decrement user stats if needed (can be complex)
+      // For simplicity, we might only decrement totalHabitsCompleted
+      // const { uid } = getState().auth.user;
+      // const userRef = doc(db, "users", uid);
+      // await updateDoc(userRef, {
+      //   "stats.totalHabitsCompleted": increment(-1),
+      //   updatedAt: serverTimestamp(),
+      // });
+      // dispatch(updateUserProfile(...)) // Update local auth state too
+
+      return {
+        id,
+        progress: {
+          streak: newStreak,
+          lastCompleted: newLastCompletedISO,
+          history: newHistory,
+        },
+      };
+    } catch (error) {
+      console.error("Error uncompleting habit:", error);
       return rejectWithValue(error.message);
     }
   }
@@ -462,6 +564,36 @@ const habitsSlice = createSlice({
         }
       })
       .addCase(completeHabit.rejected, (state) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Uncomplete habit
+      .addCase(uncompleteHabit.pending, (state) => {
+        // Can optionally set loading, but might feel instant
+        // state.loading = true;
+        state.error = null;
+      })
+      .addCase(uncompleteHabit.fulfilled, (state, action) => {
+        state.loading = false; // Ensure loading is false
+        state.items = state.items.map((habit) =>
+          habit.id === action.payload.id
+            ? { ...habit, progress: action.payload.progress }
+            : habit
+        );
+        state.dailyHabits = state.dailyHabits.map((habit) =>
+          habit.id === action.payload.id
+            ? { ...habit, progress: action.payload.progress }
+            : habit
+        );
+        if (state.currentHabit && state.currentHabit.id === action.payload.id) {
+          state.currentHabit = {
+            ...state.currentHabit,
+            progress: action.payload.progress,
+          };
+        }
+      })
+      .addCase(uncompleteHabit.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

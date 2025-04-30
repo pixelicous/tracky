@@ -146,6 +146,7 @@ const styles = StyleSheet.create({
   outlineButton: {
     backgroundColor: "transparent",
     borderWidth: 1,
+    borderColor: theme.colors.primary,
   },
   textButton: {
     backgroundColor: "transparent",
@@ -164,6 +165,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   disabledButton: {
+    backgroundColor: theme.colors.lightGray,
     ...theme.shadows.none,
   },
   contentContainer: {
@@ -179,16 +181,24 @@ const styles = StyleSheet.create({
   primaryText: {
     color: theme.colors.white,
   },
-  secondaryText: {},
-  outlineText: {},
-  textOnlyText: {},
+  secondaryText: {
+    color: theme.colors.white,
+  },
+  outlineText: {
+    color: theme.colors.primary,
+  },
+  textOnlyText: {
+    color: theme.colors.primary,
+  },
   smallText: {
     fontSize: theme.fontSizes.small,
   },
   largeText: {
     fontSize: theme.fontSizes.large,
   },
-  disabledText: {},
+  disabledText: {
+    color: theme.colors.darkGray,
+  },
   iconLeft: {
     marginRight: 8,
   },

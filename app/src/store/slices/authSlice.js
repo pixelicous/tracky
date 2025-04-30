@@ -188,21 +188,11 @@ export const updateUserProfile = createAsyncThunk(
 
 export const loadUserFromStorage = createAsyncThunk(
   "auth/loadUserFromStorage",
-  async (_, { rejectWithValue, dispatch }) => {
+  async (_, { rejectWithValue }) => {
     try {
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
         const parsedUserData = JSON.parse(userData);
-
-        // After loading from storage, fetch fresh data if we have a user ID
-        if (parsedUserData && parsedUserData.uid) {
-          // We'll dispatch fetchUserData after returning the stored data
-          // This ensures the app loads quickly with cached data first
-          setTimeout(() => {
-            dispatch(fetchUserData());
-          }, 0);
-        }
-
         return {
           ...parsedUserData,
           bio: parsedUserData.bio || "", // Ensure bio is always present
@@ -213,6 +203,52 @@ export const loadUserFromStorage = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
+  }
+);
+
+// Initialize Firebase Auth state listener
+export const initializeAuthListener = createAsyncThunk(
+  "auth/initializeAuthListener",
+  async (_, { dispatch }) => {
+    return new Promise((resolve) => {
+      // Set up the Firebase Auth state change listener
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        console.log(
+          "Auth state changed:",
+          user ? "User authenticated" : "No user"
+        );
+
+        if (user) {
+          // User is signed in
+          // First update the basic user info in Redux
+          const serializableUser = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            emailVerified: user.emailVerified,
+            phoneNumber: user.phoneNumber,
+          };
+
+          // Set the user in Redux first
+          dispatch(setUser(serializableUser));
+
+          // Then fetch fresh data from Firestore
+          setTimeout(() => {
+            dispatch(fetchUserData());
+          }, 500); // Add a small delay to ensure user is set in Redux
+        } else {
+          // User is signed out
+          dispatch(setUser(null));
+        }
+
+        // Resolve the promise to indicate the listener is set up
+        resolve();
+      });
+
+      // Return the unsubscribe function
+      return unsubscribe;
+    });
   }
 );
 
