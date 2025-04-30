@@ -266,6 +266,7 @@ export const completeHabit = createAsyncThunk(
           updateUserProfile({
             displayName: getState().auth.user.displayName,
             preferences: getState().auth.user.preferences,
+            photoURL: getState().auth.user.photoURL, // Include photoURL to prevent it from being removed
             stats: {
               ...getState().auth.user.stats,
               totalHabitsCompleted: getState().auth.user.stats
@@ -366,6 +367,7 @@ export const uncompleteHabit = createAsyncThunk(
         "progress.history": newHistory,
         "progress.streak": newStreak,
         "progress.lastCompleted": newLastCompletedISO,
+        userId: habit.userId, // Explicitly include userId
         updatedAt: serverTimestamp(),
       });
       console.log("Habit progress updated in Firestore (uncompleted)", {

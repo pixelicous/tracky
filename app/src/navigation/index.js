@@ -91,11 +91,20 @@ const DashboardNavigator = () => (
       component={DashboardScreen}
       options={{ headerShown: false }}
     />
-    <DashboardStack.Screen name="HabitDetail" component={HabitDetailScreen} />
+    <DashboardStack.Screen
+      name="HabitDetail"
+      component={HabitDetailScreen}
+      options={{ headerShown: true, headerTitle: "" }}
+    />
     <DashboardStack.Screen
       name="AddHabit"
       component={AddHabitScreen}
-      options={{ presentation: "modal", title: "Add New Habit" }}
+      options={{
+        presentation: "modal",
+        title: "Add New Habit",
+        headerShown: true,
+        headerTitle: "",
+      }}
     />
   </DashboardStack.Navigator>
 );
@@ -116,18 +125,27 @@ const HabitsNavigator = () => (
     <HabitsStack.Screen
       name="HabitsList"
       component={HabitListScreen}
-      options={{ title: "My Habits" }}
+      options={{ title: "My Habits", headerShown: false }}
     />
-    <HabitsStack.Screen name="HabitDetail" component={HabitDetailScreen} />
+    <HabitsStack.Screen
+      name="HabitDetail"
+      component={HabitDetailScreen}
+      options={{ headerShown: true, headerTitle: "" }}
+    />
     <HabitsStack.Screen
       name="AddHabit"
       component={AddHabitScreen}
-      options={{ presentation: "modal", title: "Add New Habit" }}
+      options={{
+        presentation: "modal",
+        title: "Add New Habit",
+        headerShown: true,
+        headerTitle: "",
+      }}
     />
     <HabitsStack.Screen
       name="EditHabit"
       component={EditHabitScreen}
-      options={{ title: "Edit Habit" }}
+      options={{ title: "Edit Habit", headerShown: true, headerTitle: "" }}
     />
   </HabitsStack.Navigator>
 );
@@ -148,17 +166,17 @@ const ProgressNavigator = () => (
     <ProgressStack.Screen
       name="ProgressDashboard"
       component={ProgressDashboardScreen}
-      options={{ title: "Progress" }}
+      options={{ title: "Progress", headerShown: false }}
     />
     <ProgressStack.Screen
       name="StatsDetail"
       component={StatsDetailScreen}
-      options={{ title: "Statistics" }}
+      options={{ title: "Statistics", headerShown: true, headerTitle: "" }}
     />
     <ProgressStack.Screen
       name="Achievements"
       component={AchievementsScreen}
-      options={{ title: "Achievements" }}
+      options={{ title: "Achievements", headerShown: true, headerTitle: "" }}
     />
   </ProgressStack.Navigator>
 );
@@ -179,32 +197,40 @@ const SocialNavigator = () => (
     <SocialStack.Screen
       name="SocialDashboard"
       component={SocialDashboardScreen}
-      options={{ title: "Community" }}
+      options={{ title: "Community", headerShown: false }}
     />
     <SocialStack.Screen
       name="Friends"
       component={FriendsScreen}
-      options={{ title: "Friends" }}
+      options={{ title: "Friends", headerShown: true, headerTitle: "" }}
     />
     <SocialStack.Screen
       name="AddFriend"
       component={AddFriendScreen}
-      options={{ title: "Add Friend" }}
+      options={{ title: "Add Friend", headerShown: true, headerTitle: "" }}
     />
     <SocialStack.Screen
       name="FriendProfile"
       component={FriendProfileScreen}
-      options={({ route }) => ({ title: route.params?.name || "Profile" })}
+      options={({ route }) => ({
+        title: route.params?.name || "Profile",
+        headerShown: true,
+        headerTitle: "",
+      })}
     />
     <SocialStack.Screen
       name="Challenges"
       component={ChallengesScreen}
-      options={{ title: "Challenges" }}
+      options={{ title: "Challenges", headerShown: true, headerTitle: "" }}
     />
     <SocialStack.Screen
       name="ChallengeDetail"
       component={ChallengeDetailScreen}
-      options={({ route }) => ({ title: route.params?.title || "Challenge" })}
+      options={({ route }) => ({
+        title: route.params?.title || "Challenge",
+        headerShown: true,
+        headerTitle: "",
+      })}
     />
     <SocialStack.Screen
       name="CreateChallenge"
@@ -212,6 +238,8 @@ const SocialNavigator = () => (
       options={{
         presentation: "modal",
         title: "Create Challenge",
+        headerShown: true,
+        headerTitle: "",
       }}
     />
   </SocialStack.Navigator>
@@ -233,32 +261,32 @@ const SettingsNavigator = () => (
     <SettingsStack.Screen
       name="SettingsList"
       component={SettingsScreen}
-      options={{ title: "Settings" }}
+      options={{ title: "Settings", headerShown: false }}
     />
     <SettingsStack.Screen
       name="Profile"
       component={ProfileScreen}
-      options={{ title: "My Profile" }}
+      options={{ title: "My Profile", headerShown: true, headerTitle: "" }}
     />
     <SettingsStack.Screen
       name="EditProfile"
       component={EditProfileScreen}
-      options={{ title: "Edit Profile" }}
+      options={{ title: "Edit Profile", headerShown: true, headerTitle: "" }}
     />
     <SettingsStack.Screen
       name="NotificationSettings"
       component={NotificationSettingsScreen}
-      options={{ title: "Notifications" }}
+      options={{ title: "Notifications", headerShown: true, headerTitle: "" }}
     />
     <SettingsStack.Screen
       name="ThemeSettings"
       component={ThemeSettingsScreen}
-      options={{ title: "Appearance" }}
+      options={{ title: "Appearance", headerShown: true, headerTitle: "" }}
     />
     <SettingsStack.Screen
       name="About"
       component={AboutScreen}
-      options={{ title: "About" }}
+      options={{ title: "About", headerShown: true, headerTitle: "" }}
     />
   </SettingsStack.Navigator>
 );
@@ -279,22 +307,26 @@ const PremiumNavigator = () => (
     <PremiumStack.Screen
       name="PremiumDashboard"
       component={PremiumDashboardScreen}
-      options={{ title: "Premium" }}
+      options={{ title: "Premium", headerShown: false }}
     />
     <PremiumStack.Screen
       name="Subscription"
       component={SubscriptionScreen}
-      options={{ title: "Subscribe" }}
+      options={{ title: "Subscribe", headerShown: true, headerTitle: "" }}
     />
     <PremiumStack.Screen
       name="Store"
       component={StoreScreen}
-      options={{ title: "Store" }}
+      options={{ title: "Store", headerShown: true, headerTitle: "" }}
     />
     <PremiumStack.Screen
       name="PremiumFeatures"
       component={PremiumFeaturesScreen}
-      options={{ title: "Premium Features" }}
+      options={{
+        title: "Premium Features",
+        headerShown: true,
+        headerTitle: "",
+      }}
     />
   </PremiumStack.Navigator>
 );

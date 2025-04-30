@@ -188,11 +188,18 @@ export const updateUserProfile = createAsyncThunk(
 
 export const loadUserFromStorage = createAsyncThunk(
   "auth/loadUserFromStorage",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
         const parsedUserData = JSON.parse(userData);
+
+        // After loading from storage, fetch fresh data if we have a user ID
+        if (parsedUserData && parsedUserData.uid) {
+          // We'll dispatch fetchUserData after the state is updated
+          // This ensures the app loads quickly with cached data first
+        }
+
         return {
           ...parsedUserData,
           bio: parsedUserData.bio || "", // Ensure bio is always present
@@ -206,52 +213,6 @@ export const loadUserFromStorage = createAsyncThunk(
   }
 );
 
-// Initialize Firebase Auth state listener
-export const initializeAuthListener = createAsyncThunk(
-  "auth/initializeAuthListener",
-  async (_, { dispatch }) => {
-    return new Promise((resolve) => {
-      // Set up the Firebase Auth state change listener
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        console.log(
-          "Auth state changed:",
-          user ? "User authenticated" : "No user"
-        );
-
-        if (user) {
-          // User is signed in
-          // First update the basic user info in Redux
-          const serializableUser = {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            emailVerified: user.emailVerified,
-            phoneNumber: user.phoneNumber,
-          };
-
-          // Set the user in Redux first
-          dispatch(setUser(serializableUser));
-
-          // Then fetch fresh data from Firestore
-          setTimeout(() => {
-            dispatch(fetchUserData());
-          }, 500); // Add a small delay to ensure user is set in Redux
-        } else {
-          // User is signed out
-          dispatch(setUser(null));
-        }
-
-        // Resolve the promise to indicate the listener is set up
-        resolve();
-      });
-
-      // Return the unsubscribe function
-      return unsubscribe;
-    });
-  }
-);
-
 // Fetch fresh user data from Firestore
 export const fetchUserData = createAsyncThunk(
   "auth/fetchUserData",
@@ -261,7 +222,8 @@ export const fetchUserData = createAsyncThunk(
 
       if (!user || !user.uid) {
         console.log("No user ID found, skipping fetchUserData");
-        return rejectWithValue("No user ID found");
+        // Do not reject here, just return to indicate no user to fetch for
+        return null;
       }
 
       const uid = user.uid;
@@ -454,6 +416,13 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = action.payload !== null;
+        // Dispatch fetchUserData after state is updated
+        if (state.user && state.user.uid) {
+          // This ensures the app loads quickly with cached data first
+          // and then updates with fresh data in the background
+          // The component that dispatches loadUserFromStorage should dispatch fetchUserData
+          // dispatch(fetchUserData()); // Removed dispatch from here
+        }
       })
       .addCase(loadUserFromStorage.rejected, (state, action) => {
         state.isLoading = false;
@@ -467,15 +436,19 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserData.fulfilled, (state, action) => {
-        state.user = action.payload;
-        console.log(
-          "User data updated in Redux store with fresh Firestore data"
-        );
+        // Only update user if action.payload is not null (i.e., user data was fetched)
+        if (action.payload) {
+          state.user = action.payload;
+          console.log(
+            "User data updated in Redux store with fresh Firestore data"
+          );
+        }
       })
       .addCase(fetchUserData.rejected, (state, action) => {
-        console.error("Failed to fetch fresh user data:", action.payload);
+        console.error("Failed to fetch fresh user data:", action);
         // We don't set the error in the state to avoid showing error messages
         // for background refreshes
+        // The error is logged, but the state remains unchanged
       });
   },
 });

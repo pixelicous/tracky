@@ -9,14 +9,20 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
-import { fetchHabits, completeHabit } from "../../store/slices/habitsSlice";
+import {
+  fetchHabits,
+  completeHabit,
+  uncompleteHabit,
+} from "../../store/slices/habitsSlice";
 import { Container, Loading } from "../../components/common";
 import { Body, Caption } from "../../components/common/Typography";
 import { HabitCard } from "../../components/habits";
 import { theme } from "../../theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const HabitListScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
   const currentTheme = useSelector((state) => state.ui.theme);
   const currentThemeColors =
     currentTheme === "dark" ? theme.colors.darkMode : theme.colors;
@@ -57,7 +63,15 @@ const HabitListScreen = ({ navigation }) => {
   };
 
   const handleHabitToggle = (habit) => {
-    dispatch(completeHabit({ id: habit.id }));
+    const today = new Date().toISOString().split("T")[0];
+    const isCompletedToday =
+      habit.progress?.history && habit.progress.history[today];
+
+    if (isCompletedToday) {
+      dispatch(uncompleteHabit({ id: habit.id }));
+    } else {
+      dispatch(completeHabit({ id: habit.id }));
+    }
   };
 
   // Apply search and filters
@@ -138,139 +152,151 @@ const HabitListScreen = ({ navigation }) => {
   }
 
   return (
-    <Container>
-      <View
-        style={[
-          styles.searchContainer,
-          { backgroundColor: currentThemeColors.card },
-        ]}
-      >
-        <Ionicons
-          name="search"
-          size={20}
-          color={currentThemeColors.darkGray}
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={[styles.searchInput, { color: currentThemeColors.black }]}
-          placeholder="Search habits..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={currentThemeColors.gray}
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <Ionicons
-              name="close-circle"
-              size={20}
-              color={currentThemeColors.darkGray}
-            />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      <View style={styles.filtersContainer}>
-        <TouchableOpacity
+    <View style={styles.screenContainer}>
+      <Container>
+        <View
           style={[
-            styles.filterButton,
-            filterType === "all" && styles.activeFilter,
-            {
-              backgroundColor:
-                filterType === "all"
-                  ? currentThemeColors.primary
-                  : currentThemeColors.lightGray,
-            },
+            styles.searchContainer,
+            { backgroundColor: currentThemeColors.card },
           ]}
-          onPress={() => setFilterType("all")}
         >
-          <Body
+          <Ionicons
+            name="search"
+            size={20}
+            color={currentThemeColors.darkGray}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={[styles.searchInput, { color: currentThemeColors.black }]}
+            placeholder="Search habits..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor={currentThemeColors.gray}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={currentThemeColors.darkGray}
+              />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        <View style={styles.filtersContainer}>
+          <TouchableOpacity
             style={[
-              styles.filterText,
+              styles.filterButton,
+              filterType === "all" && styles.activeFilter,
               {
-                color:
+                backgroundColor:
                   filterType === "all"
-                    ? currentThemeColors.white
-                    : currentThemeColors.darkGray,
+                    ? currentThemeColors.primary
+                    : currentThemeColors.lightGray,
               },
             ]}
+            onPress={() => setFilterType("all")}
           >
-            All
-          </Body>
-        </TouchableOpacity>
+            <Body
+              style={[
+                styles.filterText,
+                {
+                  color:
+                    filterType === "all"
+                      ? currentThemeColors.white
+                      : currentThemeColors.darkGray,
+                },
+              ]}
+            >
+              All
+            </Body>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filterType === "active" && styles.activeFilter,
-            {
-              backgroundColor:
-                filterType === "active"
-                  ? currentThemeColors.primary
-                  : currentThemeColors.lightGray,
-            },
-          ]}
-          onPress={() => setFilterType("active")}
-        >
-          <Body
+          <TouchableOpacity
             style={[
-              styles.filterText,
+              styles.filterButton,
+              filterType === "active" && styles.activeFilter,
               {
-                color:
+                backgroundColor:
                   filterType === "active"
-                    ? currentThemeColors.white
-                    : currentThemeColors.darkGray,
+                    ? currentThemeColors.primary
+                    : currentThemeColors.lightGray,
               },
             ]}
+            onPress={() => setFilterType("active")}
           >
-            Active
-          </Body>
-        </TouchableOpacity>
+            <Body
+              style={[
+                styles.filterText,
+                {
+                  color:
+                    filterType === "active"
+                      ? currentThemeColors.white
+                      : currentThemeColors.darkGray,
+                },
+              ]}
+            >
+              Active
+            </Body>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filterType === "completed" && styles.activeFilter,
-            {
-              backgroundColor:
-                filterType === "completed"
-                  ? currentThemeColors.primary
-                  : currentThemeColors.lightGray,
-            },
-          ]}
-          onPress={() => setFilterType("completed")}
-        >
-          <Body
+          <TouchableOpacity
             style={[
-              styles.filterText,
+              styles.filterButton,
+              filterType === "completed" && styles.activeFilter,
               {
-                color:
+                backgroundColor:
                   filterType === "completed"
-                    ? currentThemeColors.white
-                    : currentThemeColors.darkGray,
+                    ? currentThemeColors.primary
+                    : currentThemeColors.lightGray,
               },
             ]}
+            onPress={() => setFilterType("completed")}
           >
-            Completed
-          </Body>
-        </TouchableOpacity>
-      </View>
+            <Body
+              style={[
+                styles.filterText,
+                {
+                  color:
+                    filterType === "completed"
+                      ? currentThemeColors.white
+                      : currentThemeColors.darkGray,
+                },
+              ]}
+            >
+              Completed
+            </Body>
+          </TouchableOpacity>
+        </View>
 
-      <FlatList
-        data={sortedHabits}
-        renderItem={renderHabitItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyList}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      />
-    </Container>
+        <FlatList
+          data={sortedHabits}
+          renderItem={renderHabitItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyList}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        />
+      </Container>
+
+      <TouchableOpacity
+        style={[styles.fab, { bottom: insets.bottom + theme.spacing.medium }]}
+        onPress={() => navigation.navigate("AddHabit")}
+      >
+        <Ionicons name="add" size={30} color={currentThemeColors.white} />
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+  },
   addButton: {
     padding: 8,
   },
