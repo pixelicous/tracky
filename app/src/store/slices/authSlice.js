@@ -208,6 +208,13 @@ const authSlice = createSlice({
     setUser: (state, action) => {
       state.user = action.payload;
       state.isAuthenticated = action.payload !== null;
+
+      // Persist user state to AsyncStorage when it changes
+      if (action.payload) {
+        AsyncStorage.setItem("user", JSON.stringify(action.payload));
+      } else {
+        AsyncStorage.removeItem("user");
+      }
     },
     clearError: (state) => {
       state.error = null;
@@ -224,12 +231,19 @@ const authSlice = createSlice({
         state.isLoading = false;
         const payload = {
           ...action.payload,
-          createdAt: action.payload.createdAt?.toDate().toISOString() || null,
-          lastActive: action.payload.lastActive?.toDate().toISOString() || null,
-          updatedAt: action.payload.updatedAt?.toDate().toISOString() || null,
+          createdAt:
+            action.payload.createdAt?.toDate?.()?.toISOString() || null,
+          lastActive:
+            action.payload.lastActive?.toDate?.()?.toISOString() || null,
+          updatedAt:
+            action.payload.updatedAt?.toDate?.()?.toISOString() || null,
         };
         state.user = payload;
         state.isAuthenticated = true;
+
+        // Save user data to AsyncStorage for session persistence
+        AsyncStorage.setItem("user", JSON.stringify(payload));
+        console.log("User session saved to AsyncStorage after registration");
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
