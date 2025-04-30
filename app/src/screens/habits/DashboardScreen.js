@@ -11,7 +11,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
-import { fetchHabits, completeHabit } from "../../store/slices/habitsSlice";
+import {
+  fetchHabits,
+  completeHabit,
+  uncompleteHabit, // Import the new action
+} from "../../store/slices/habitsSlice";
 import { fetchUserStats } from "../../store/slices/progressSlice";
 import { Container, Card, Loading } from "../../components/common";
 import {
@@ -57,7 +61,17 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   const handleHabitToggle = (habit) => {
-    dispatch(completeHabit({ id: habit.id }));
+    const today = new Date().toISOString().split("T")[0];
+    const isCompletedToday =
+      habit.progress?.history && habit.progress.history[today];
+
+    if (isCompletedToday) {
+      // Dispatch uncomplete action if already completed today
+      dispatch(uncompleteHabit({ id: habit.id }));
+    } else {
+      // Dispatch complete action if not completed today
+      dispatch(completeHabit({ id: habit.id }));
+    }
   };
 
   const handleAddHabit = () => {

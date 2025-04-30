@@ -20,6 +20,7 @@ import {
 } from "date-fns";
 import {
   completeHabit,
+  uncompleteHabit, // Add import for the new action
   deleteHabit,
   fetchHabits,
 } from "../../store/slices/habitsSlice";
@@ -96,7 +97,17 @@ const HabitDetailScreen = ({ route, navigation }) => {
   };
 
   const handleComplete = () => {
-    dispatch(completeHabit({ id: habit.id }));
+    const today = new Date().toISOString().split("T")[0];
+    const isCompletedToday =
+      habit.progress?.history && habit.progress.history[today];
+
+    if (isCompletedToday) {
+      // Dispatch uncomplete action if already completed today
+      dispatch(uncompleteHabit({ id: habit.id }));
+    } else {
+      // Dispatch complete action if not completed today
+      dispatch(completeHabit({ id: habit.id }));
+    }
   };
 
   const renderFrequencyText = () => {
