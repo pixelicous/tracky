@@ -354,6 +354,17 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontFamily: theme.fonts.semiBold,
   },
+  fab: {
+    position: "absolute",
+    right: theme.spacing.medium,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    ...theme.shadows.medium,
+  },
 });
 
 export default HabitListScreen;

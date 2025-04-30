@@ -403,21 +403,19 @@ export const uncompleteHabit = createAsyncThunk(
 
 export const deleteHabit = createAsyncThunk(
   "habits/deleteHabit",
-  async (id, { rejectWithValue, dispatch }) => {
+  async (id, { rejectWithValue, dispatch, getState }) => {
+    // Added getState here
     console.log("deleteHabit thunk started", id);
     try {
-      // Instead of actually deleting, we archive the habit
       const habitRef = doc(db, "habits", id);
       console.log("Habit ref:", habitRef);
 
-      await updateDoc(habitRef, {
-        isArchived: true,
-        updatedAt: serverTimestamp(),
-      });
-      console.log("Habit archived successfully");
+      // Actually delete the document
+      await deleteDoc(habitRef);
+      console.log("Habit deleted successfully");
 
       // Dispatch fetchHabits to refresh the list
-      console.log("Dispatching fetchHabits after archiving");
+      console.log("Dispatching fetchHabits after deletion");
       await dispatch(fetchHabits());
 
       // Clear cached habits in AsyncStorage
@@ -426,6 +424,7 @@ export const deleteHabit = createAsyncThunk(
 
       return id;
     } catch (error) {
+      console.error("Error deleting habit:", error); // Added error logging
       return rejectWithValue(error.message);
     }
   }

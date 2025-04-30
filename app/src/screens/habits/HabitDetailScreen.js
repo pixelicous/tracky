@@ -91,8 +91,9 @@ const HabitDetailScreen = ({ route, navigation }) => {
       .then(() => {
         navigation.goBack();
       })
-      .catch((error) => {
-        Alert.alert("Error", "Failed to delete habit. Please try again.");
+      .catch(() => {
+        // Removed error parameter as it's not used
+        // Removed the Alert. We don't want a pop-up on failure here.
       });
   };
 
