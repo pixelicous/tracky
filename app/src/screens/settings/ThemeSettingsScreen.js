@@ -165,6 +165,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
         updateUserProfile({
           displayName: user.displayName || "", // Include displayName, default to empty string
           bio: user.bio || "", // Include bio, default to empty string
+          photoURL: user.photoURL || null, // Include existing photoURL
           preferences: {
             ...user.preferences,
             theme: themeId,
