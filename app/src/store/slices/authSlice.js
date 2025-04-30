@@ -105,10 +105,14 @@ export const signIn = createAsyncThunk(
       // Get user data from Firestore
       const userDoc = await getDoc(userDocRef);
 
+      // Create a serializable user object with basic auth properties
       let userData = {
         uid: user.uid,
         email: user.email,
-        displayName: user.displayName,
+        displayName: user.displayName || "",
+        photoURL: user.photoURL || null,
+        emailVerified: user.emailVerified || false,
+        phoneNumber: user.phoneNumber || null,
       };
 
       if (userDoc.exists()) {
@@ -116,9 +120,15 @@ export const signIn = createAsyncThunk(
         userData = {
           ...userData,
           ...data,
-          createdAt: data.createdAt?.toDate().toISOString() || null,
-          lastActive: data.lastActive?.toDate().toISOString() || null,
-          updatedAt: data.updatedAt?.toDate().toISOString() || null,
+          // Ensure timestamps are serialized
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+          lastActive: data.lastActive?.toDate?.()?.toISOString() || null,
+          updatedAt: data.updatedAt?.toDate?.()?.toISOString() || null,
+          // Remove any potential non-serializable fields
+          proactiveRefresh: undefined,
+          reloadUserInfo: undefined,
+          reloadListener: undefined,
+          stsTokenManager: undefined,
         };
       }
 
