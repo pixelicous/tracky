@@ -224,26 +224,30 @@ export const fetchUserData = createAsyncThunk(
       const { user } = getState().auth;
 
       if (!user || !user.uid) {
+        console.log("No user ID found, skipping fetchUserData");
         return rejectWithValue("No user ID found");
       }
 
-      console.log("Fetching fresh user data from Firestore for uid:", user.uid);
+      const uid = user.uid;
+      console.log("Fetching fresh user data from Firestore for uid:", uid);
 
-      const userDocRef = doc(db, "users", user.uid);
+      const userDocRef = doc(db, "users", uid);
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
+        console.error("User document not found for uid:", uid);
         return rejectWithValue("User document not found");
       }
 
       const data = userDoc.data();
+      console.log("User document data:", data);
 
       // Create a new user object with only serializable properties
       const userData = {
-        uid: user.uid,
+        uid: uid,
         email: user.email,
-        displayName: user.displayName || data.displayName || "",
-        photoURL: user.photoURL || data.photoURL || null,
+        displayName: user.displayName || data?.displayName || "",
+        photoURL: user.photoURL || data?.photoURL || null,
         emailVerified: user.emailVerified || false,
         phoneNumber: user.phoneNumber || null,
         // Add Firestore data
@@ -262,7 +266,7 @@ export const fetchUserData = createAsyncThunk(
       console.log("Fresh user data fetched successfully");
 
       // Update AsyncStorage with fresh data
-      AsyncStorage.setItem("user", JSON.stringify(userData));
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
 
       return userData;
     } catch (error) {
