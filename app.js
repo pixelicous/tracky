@@ -11,7 +11,11 @@ import { theme } from "./app/src/theme";
 import Navigation from "./app/src/navigation";
 import { auth } from "./app/src/services/api/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { loadUserFromStorage } from "./app/src/store/slices/authSlice";
+import {
+  loadUserFromStorage,
+  refreshAuthToken,
+} from "./app/src/store/slices/authSlice";
+import { ensureFreshAuthToken } from "./app/src/utils/authUtils";
 import {
   setFirstLaunch,
   setOnboardingComplete,
@@ -59,14 +63,44 @@ export default function App() {
         );
         store.dispatch(setOnboardingComplete(onboardingComplete === "true"));
 
+        // Try to restore authentication session
+        const isAuthenticated = await ensureFreshAuthToken();
+        console.log("Authentication session restored:", isAuthenticated);
+
         // Load user from storage
         await store.dispatch(loadUserFromStorage());
         setUserLoaded(true);
+        // Fetch fresh user data after loading from storage
+        if (store.getState().auth.user && store.getState().auth.user.uid) {
+          store.dispatch(fetchUserData());
+        }
+        // Refresh token after loading user and fetching data
+        if (store.getState().auth.user && store.getState().auth.user.uid) {
+          store.dispatch(refreshAuthToken());
+        }
 
         // Set up auth listener
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          if (user && !store.getState().auth.user) {
-            store.dispatch(loadUserFromStorage());
+          console.log(
+            "Auth state changed:",
+            user ? "User logged in" : "No user"
+          );
+          if (user) {
+            if (!store.getState().auth.user) {
+              // If we have a Firebase user but no Redux user, load from storage
+              store.dispatch(loadUserFromStorage());
+            } else {
+              // If we already have a user in Redux, just refresh the token
+              store.dispatch(refreshAuthToken());
+            }
+          } else {
+            // If Firebase says no user but we have one in Redux, try to restore session
+            if (store.getState().auth.user) {
+              console.log(
+                "Firebase says no user but Redux has one, trying to restore session"
+              );
+              ensureFreshAuthToken();
+            }
           }
         });
 
