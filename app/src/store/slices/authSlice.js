@@ -178,11 +178,21 @@ export const updateUserProfile = createAsyncThunk(
 
 export const loadUserFromStorage = createAsyncThunk(
   "auth/loadUserFromStorage",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
         const parsedUserData = JSON.parse(userData);
+
+        // After loading from storage, fetch fresh data if we have a user ID
+        if (parsedUserData && parsedUserData.uid) {
+          // We'll dispatch fetchUserData after returning the stored data
+          // This ensures the app loads quickly with cached data first
+          setTimeout(() => {
+            dispatch(fetchUserData());
+          }, 0);
+        }
+
         return {
           ...parsedUserData,
           bio: parsedUserData.bio || "", // Ensure bio is always present
@@ -191,6 +201,62 @@ export const loadUserFromStorage = createAsyncThunk(
         return null;
       }
     } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Fetch fresh user data from Firestore
+export const fetchUserData = createAsyncThunk(
+  "auth/fetchUserData",
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const { user } = getState().auth;
+
+      if (!user || !user.uid) {
+        return rejectWithValue("No user ID found");
+      }
+
+      console.log("Fetching fresh user data from Firestore for uid:", user.uid);
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        return rejectWithValue("User document not found");
+      }
+
+      const data = userDoc.data();
+
+      // Create a new user object with only serializable properties
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || data.displayName || "",
+        photoURL: user.photoURL || data.photoURL || null,
+        emailVerified: user.emailVerified || false,
+        phoneNumber: user.phoneNumber || null,
+        // Add Firestore data
+        ...data,
+        // Ensure timestamps are serialized
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+        lastActive: data.lastActive?.toDate?.()?.toISOString() || null,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || null,
+        // Remove any potential non-serializable fields from Firestore
+        proactiveRefresh: undefined,
+        reloadUserInfo: undefined,
+        reloadListener: undefined,
+        stsTokenManager: undefined,
+      };
+
+      console.log("Fresh user data fetched successfully");
+
+      // Update AsyncStorage with fresh data
+      AsyncStorage.setItem("user", JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      console.error("Error fetching user data:", error);
       return rejectWithValue(error.message);
     }
   }
@@ -260,31 +326,16 @@ const authSlice = createSlice({
         state.isLoading = false;
         const payload = {
           ...action.payload,
-          createdAt: action.payload.createdAt?.toDate().toISOString() || null,
-          lastActive: action.payload.lastActive?.toDate().toISOString() || null,
-          updatedAt: action.payload.updatedAt?.toDate().toISOString() || null,
+          createdAt: action.payload.createdAt || null,
+          lastActive: action.payload.lastActive || null,
+          updatedAt: action.payload.updatedAt || null,
         };
         state.user = payload;
         state.isAuthenticated = true;
-        // Fetch latest user data from Firestore and update AsyncStorage
-        (async () => {
-          const userDocRef = doc(db, "users", payload.uid);
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            const updatedUserData = {
-              ...payload,
-              ...data,
-              createdAt: data.createdAt?.toDate().toISOString() || null,
-              lastActive: data.lastActive?.toDate().toISOString() || null,
-              updatedAt: data.updatedAt?.toDate().toISOString() || null,
-            };
-            state.user = updatedUserData;
-            AsyncStorage.setItem("user", JSON.stringify(updatedUserData));
-          } else {
-            AsyncStorage.setItem("user", JSON.stringify(payload));
-          }
-        })();
+
+        // Save user data to AsyncStorage
+        AsyncStorage.setItem("user", JSON.stringify(payload));
+        console.log("User data saved to AsyncStorage after sign in");
       })
       .addCase(signIn.rejected, (state, action) => {
         state.isLoading = false;
@@ -357,6 +408,24 @@ const authSlice = createSlice({
       .addCase(loadUserFromStorage.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+
+      // Fetch user data
+      .addCase(fetchUserData.pending, (state) => {
+        // We don't set loading to true here to avoid UI flicker
+        // since this is a background refresh
+        state.error = null;
+      })
+      .addCase(fetchUserData.fulfilled, (state, action) => {
+        state.user = action.payload;
+        console.log(
+          "User data updated in Redux store with fresh Firestore data"
+        );
+      })
+      .addCase(fetchUserData.rejected, (state, action) => {
+        console.error("Failed to fetch fresh user data:", action.payload);
+        // We don't set the error in the state to avoid showing error messages
+        // for background refreshes
       });
   },
 });

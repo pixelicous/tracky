@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { signIn } from "../../store/slices/authSlice";
+import { signIn, fetchUserData } from "../../store/slices/authSlice";
 import { Ionicons } from "@expo/vector-icons";
 import { Container, Button, Input } from "../../components/common";
 import { Title, Body, Caption } from "../../components/common/Typography";
@@ -51,7 +51,15 @@ const SignInScreen = ({ navigation }) => {
 
   const handleSignIn = () => {
     if (validateForm()) {
-      dispatch(signIn({ email, password }));
+      dispatch(signIn({ email, password }))
+        .unwrap()
+        .then(() => {
+          // Fetch fresh user data after successful login
+          dispatch(fetchUserData());
+        })
+        .catch((error) => {
+          console.error("Login error:", error);
+        });
     }
   };
 

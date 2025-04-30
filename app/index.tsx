@@ -10,7 +10,11 @@ import { theme } from "./src/theme";
 import Navigation from "./src/navigation";
 import { auth } from "./src/services/api/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { setUser, loadUserFromStorage } from "./src/store/slices/authSlice";
+import {
+  setUser,
+  loadUserFromStorage,
+  fetchUserData,
+} from "./src/store/slices/authSlice";
 import {
   setFirstLaunch,
   setOnboardingComplete,
@@ -67,9 +71,23 @@ export default function App() {
 
         // Set up auth listener for future auth state changes
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          if (user && !store.getState().auth.user) {
-            // Only update if there's an actual Firebase user
-            store.dispatch(setUser(user));
+          if (user) {
+            if (!store.getState().auth.user) {
+              // Only update if there's an actual Firebase user
+              // Extract only serializable properties to avoid Redux serialization errors
+              const serializableUser = {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                emailVerified: user.emailVerified,
+                phoneNumber: user.phoneNumber,
+              };
+              store.dispatch(setUser(serializableUser));
+            }
+
+            // Always fetch fresh user data when auth state changes
+            store.dispatch(fetchUserData());
           }
         });
 

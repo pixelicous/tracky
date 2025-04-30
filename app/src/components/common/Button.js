@@ -176,7 +176,9 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSizes.medium,
     textAlign: "center",
   },
-  primaryText: {},
+  primaryText: {
+    color: theme.colors.white,
+  },
   secondaryText: {},
   outlineText: {},
   textOnlyText: {},
