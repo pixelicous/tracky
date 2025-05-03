@@ -7,6 +7,7 @@ import {
   sendPasswordResetEmail,
   signInWithCredential,
   GoogleAuthProvider,
+  onAuthStateChanged,
 } from "firebase/auth";
 import {
   collection,
@@ -236,6 +237,37 @@ export const signInWithGoogle = createAsyncThunk(
               "Failed to get ID token from Google Sign-In"
             );
           }
+
+          // Store Google credentials for session restoration
+          const email = signInResult.data?.user?.email;
+          if (email) {
+            console.log("Storing Google credentials for session restoration");
+            console.log("Email:", email);
+            console.log(
+              "ID Token (first 10 chars):",
+              idToken.substring(0, 10) + "..."
+            );
+
+            const {
+              storeGoogleAuthCredentials,
+            } = require("../../utils/authUtils");
+
+            await storeGoogleAuthCredentials(email, idToken);
+
+            // Verify the credentials were stored
+            const storedCreds = await AsyncStorage.getItem("auth_credentials");
+            const parsedCreds = JSON.parse(storedCreds);
+            console.log(
+              "Verified stored credentials - Provider:",
+              parsedCreds.provider,
+              "Email:",
+              parsedCreds.email,
+              "Has ID Token:",
+              !!parsedCreds.idToken
+            );
+          } else {
+            console.error("No email found in Google Sign-In result");
+          }
         } catch (signInError) {
           console.error(
             "!!! Error during GoogleSignin.signIn():",
@@ -369,6 +401,10 @@ export const signInWithGoogle = createAsyncThunk(
         updatedAt: docData?.updatedAt?.toDate?.()?.toISOString() || null,
       };
 
+      // Store user data in AsyncStorage for session restoration
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+      console.log("User data stored in AsyncStorage for session restoration");
+
       return userData;
     } catch (error) {
       console.error("Google Sign In Error:", error);
@@ -457,11 +493,26 @@ export const loadUserFromStorage = createAsyncThunk(
   "auth/loadUserFromStorage",
   async (_, { rejectWithValue, dispatch }) => {
     try {
+      console.log("Attempting to restore user session from AsyncStorage");
+
+      // First try to refresh the auth token
+      const { ensureFreshAuthToken } = require("../../utils/authUtils");
+      const tokenRefreshed = await ensureFreshAuthToken();
+
+      if (!tokenRefreshed) {
+        console.log("Failed to refresh auth token, clearing stored data");
+        await AsyncStorage.removeItem("user");
+        await AsyncStorage.removeItem("auth_credentials");
+        return null;
+      }
+
+      // Now try to get the user data
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
         const parsedUserData = JSON.parse(userData);
+        console.log("User found in AsyncStorage, restoring session");
 
-        // After loading from storage, fetch fresh data if we have a user ID
+        // After loading from storage and refreshing token, fetch fresh data if we have a user ID
         if (parsedUserData && parsedUserData.uid) {
           // Refresh the Firebase auth token
           console.log("User found in storage, refreshing auth token");
@@ -484,6 +535,52 @@ export const loadUserFromStorage = createAsyncThunk(
       }
     } catch (error) {
       return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Initialize Firebase Auth state listener
+export const initializeAuthListener = createAsyncThunk(
+  "auth/initializeAuthListener",
+  async (_, { dispatch }) => {
+    try {
+      console.log("Setting up Firebase Auth state listener");
+
+      // Set up auth listener
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        console.log(
+          "Auth state changed:",
+          user
+            ? `User logged in (${user.providerData[0]?.providerId})`
+            : "No user"
+        );
+
+        if (user) {
+          // Check if this is a Google user
+          const isGoogleUser = user.providerData.some(
+            (provider) => provider.providerId === "google.com"
+          );
+
+          console.log("Is Google user:", isGoogleUser);
+
+          // Fetch fresh user data
+          dispatch(fetchUserData());
+        } else {
+          // If no user, dispatch signOut action
+          console.log("No user in Firebase Auth, clearing Redux state");
+          dispatch({ type: "auth/signOut/fulfilled", payload: null });
+        }
+      });
+
+      // Store the unsubscribe function in a global variable
+      // This is not ideal, but it's a workaround for the non-serializable value issue
+      global._authUnsubscribe = unsubscribe;
+
+      // Return a serializable value instead of the function
+      return { initialized: true };
+    } catch (error) {
+      console.error("Error initializing auth listener:", error);
+      return { initialized: false, error: error.message };
     }
   }
 );
@@ -557,6 +654,7 @@ const authSlice = createSlice({
     isLoading: false,
     error: null,
     isAuthenticated: false,
+    authListenerInitialized: false,
   },
   reducers: {
     setUser: (state, action) => {
@@ -759,6 +857,21 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         AsyncStorage.removeItem("user");
+      })
+
+      // Handle initializeAuthListener
+      .addCase(initializeAuthListener.pending, (state) => {
+        // Don't set loading to true to avoid UI flicker
+        state.error = null;
+      })
+      .addCase(initializeAuthListener.fulfilled, (state, action) => {
+        // Auth listener initialized successfully
+        state.authListenerInitialized = true;
+        console.log("Auth listener initialized successfully");
+      })
+      .addCase(initializeAuthListener.rejected, (state, action) => {
+        console.error("Failed to initialize auth listener:", action);
+        state.authListenerInitialized = false;
       });
   },
 });

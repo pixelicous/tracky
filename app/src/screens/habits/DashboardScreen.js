@@ -58,8 +58,35 @@ const DashboardScreen = ({ navigation }) => {
   // Fetch data when the screen is focused
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [dispatch]) // Add dispatch as a dependency
+      // Check if user is authenticated before loading data
+      if (user && user.uid) {
+        loadData();
+      } else {
+        console.log(
+          "User not authenticated in useFocusEffect, waiting for auth"
+        );
+        // Try to refresh auth state
+        const checkAuth = async () => {
+          try {
+            const { ensureFreshAuthToken } = require("../../utils/authUtils");
+            const isAuthenticated = await ensureFreshAuthToken();
+            if (isAuthenticated) {
+              console.log(
+                "Authentication restored in useFocusEffect, loading data"
+              );
+              loadData();
+            } else {
+              console.log("Failed to restore authentication in useFocusEffect");
+              setShowAuthError(true);
+            }
+          } catch (error) {
+            console.error("Error checking authentication:", error);
+          }
+        };
+
+        checkAuth();
+      }
+    }, [dispatch, user]) // Add user as a dependency
   );
 
   useEffect(() => {
@@ -68,6 +95,16 @@ const DashboardScreen = ({ navigation }) => {
   }, []); // Empty dependency array as useFocusEffect handles fetching on focus
 
   const loadData = async () => {
+    // Check if user is authenticated before fetching data
+    if (!user || !user.uid) {
+      console.log(
+        "User not authenticated in DashboardScreen, waiting for auth"
+      );
+      setShowAuthError(true);
+      return;
+    }
+
+    console.log("User authenticated, fetching habits and stats");
     dispatch(fetchHabits());
     dispatch(fetchUserStats());
   };

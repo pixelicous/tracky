@@ -25,6 +25,24 @@ const AuthErrorModal = ({ visible, onClose }) => {
       });
   };
 
+  const handleRetry = async () => {
+    try {
+      // Try to restore authentication
+      const { ensureFreshAuthToken } = require("../../utils/authUtils");
+      const isAuthenticated = await ensureFreshAuthToken();
+
+      if (isAuthenticated) {
+        console.log("Authentication restored successfully");
+        if (onClose) onClose();
+      } else {
+        console.log("Failed to restore authentication");
+        // Keep modal open
+      }
+    } catch (error) {
+      console.error("Error retrying authentication:", error);
+    }
+  };
+
   return (
     <RNModal
       animationType="fade"
@@ -52,11 +70,23 @@ const AuthErrorModal = ({ visible, onClose }) => {
           </View>
 
           <Body style={styles.message}>
-            Your session has expired or is invalid. Please sign out and sign
-            back in to continue using the app.
+            Your session has expired or is invalid. This can happen when using
+            Google Sign-In and restarting the app.
+          </Body>
+
+          <Body style={styles.submessage}>
+            You can try to restore your session or sign out and sign back in.
           </Body>
 
           <View style={styles.buttonContainer}>
+            <Button
+              title="Try Again"
+              onPress={handleRetry}
+              type="secondary"
+              style={styles.retryButton}
+              fullWidth
+            />
+
             <Button
               title="Sign Out"
               onPress={handleSignOut}
@@ -109,10 +139,19 @@ const styles = StyleSheet.create({
   },
   message: {
     textAlign: "center",
+    marginBottom: theme.spacing.medium,
+  },
+  submessage: {
+    textAlign: "center",
     marginBottom: theme.spacing.large,
+    color: theme.colors.darkGray,
+    fontSize: theme.fontSizes.small,
   },
   buttonContainer: {
     marginTop: theme.spacing.medium,
+  },
+  retryButton: {
+    marginBottom: theme.spacing.medium,
   },
 });
 
