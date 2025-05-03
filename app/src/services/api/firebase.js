@@ -1,7 +1,11 @@
 // firebase.config.js
 import Constants from "expo-constants";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import {
+  getAuth,
+  connectAuthEmulator,
+  GoogleAuthProvider,
+} from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
@@ -20,7 +24,7 @@ if (env === "development") {
     projectId: "trackies-dev",
     storageBucket: "demo-app.appspot.com",
     messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef123456789",
+    appId: "demo-app-id", // Replace with actual Firebase App ID if needed for emulators
   };
   console.log("🔥 Using Firebase Emulators with dummy config");
 } else {
@@ -48,6 +52,9 @@ try {
 
 // Initialize services
 const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope("profile");
+googleProvider.addScope("email");
 const db = getFirestore(app);
 const functions = getFunctions(app);
 const storage = getStorage(app);
@@ -67,7 +74,7 @@ if (env === "development") {
 }
 
 // Export initialized services for use in the app
-export { app, auth, db, functions, storage };
+export { app, auth, db, functions, storage, googleProvider };
 
 // For backward compatibility
 export default app;

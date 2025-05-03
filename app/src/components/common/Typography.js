@@ -1,71 +1,124 @@
-import React from "react";
-import { Text, StyleSheet } from "react-native";
+import React, { useContext } from "react";
+import { Text, StyleSheet, useColorScheme } from "react-native";
 import { theme } from "../../theme";
+import { useSelector } from "react-redux";
 
-export const Title = ({ children, style, center, ...props }) => (
-  <Text style={[styles.title, center && styles.textCenter, style]} {...props}>
-    {children}
-  </Text>
-);
+// Helper function to get the current theme colors
+const useThemeColors = () => {
+  const currentTheme = useSelector((state) => state.ui.theme);
+  const systemColorScheme = useColorScheme();
+  const isDarkMode =
+    currentTheme === "dark" ||
+    (currentTheme === "system" && systemColorScheme === "dark");
 
-export const Heading = ({ children, style, center, ...props }) => (
-  <Text style={[styles.heading, center && styles.textCenter, style]} {...props}>
-    {children}
-  </Text>
-);
+  return isDarkMode ? theme.colors.darkMode : theme.colors;
+};
 
-export const Subheading = ({ children, style, center, ...props }) => (
-  <Text
-    style={[styles.subheading, center && styles.textCenter, style]}
-    {...props}
-  >
-    {children}
-  </Text>
-);
+export const Title = ({ children, style, center, ...props }) => {
+  const currentThemeColors = useThemeColors();
+  return (
+    <Text
+      style={[
+        styles.title,
+        { color: currentThemeColors.black },
+        center && styles.textCenter,
+        style,
+      ]}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+};
 
-export const Body = ({ children, style, center, bold, ...props }) => (
-  <Text
-    style={[
-      styles.body,
-      center && styles.textCenter,
-      bold && styles.bodyBold,
-      style,
-    ]}
-    {...props}
-  >
-    {children}
-  </Text>
-);
+export const Heading = ({ children, style, center, ...props }) => {
+  const currentThemeColors = useThemeColors();
+  return (
+    <Text
+      style={[
+        styles.heading,
+        { color: currentThemeColors.black },
+        center && styles.textCenter,
+        style,
+      ]}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+};
 
-export const Caption = ({ children, style, center, ...props }) => (
-  <Text style={[styles.caption, center && styles.textCenter, style]} {...props}>
-    {children}
-  </Text>
-);
+export const Subheading = ({ children, style, center, ...props }) => {
+  const currentThemeColors = useThemeColors();
+  return (
+    <Text
+      style={[
+        styles.subheading,
+        { color: currentThemeColors.black },
+        center && styles.textCenter,
+        style,
+      ]}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+};
+
+export const Body = ({ children, style, center, bold, ...props }) => {
+  const currentThemeColors = useThemeColors();
+  return (
+    <Text
+      style={[
+        styles.body,
+        { color: currentThemeColors.black },
+        center && styles.textCenter,
+        bold && styles.bodyBold,
+        style,
+      ]}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+};
+
+export const Caption = ({ children, style, center, ...props }) => {
+  const currentThemeColors = useThemeColors();
+  return (
+    <Text
+      style={[
+        styles.caption,
+        { color: currentThemeColors.darkGray },
+        center && styles.textCenter,
+        style,
+      ]}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+};
 
 const styles = StyleSheet.create({
   title: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSizes.title,
-    color: theme.colors.black,
     marginVertical: theme.spacing.small,
   },
   heading: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSizes.xxl,
-    color: theme.colors.black,
     marginVertical: theme.spacing.small,
   },
   subheading: {
     fontFamily: theme.fonts.semiBold,
     fontSize: theme.fontSizes.large,
-    color: theme.colors.black,
     marginVertical: theme.spacing.xs,
   },
   body: {
     fontFamily: theme.fonts.regular,
     fontSize: theme.fontSizes.medium,
-    color: theme.colors.black,
     lineHeight: 22,
   },
   bodyBold: {
@@ -74,7 +127,6 @@ const styles = StyleSheet.create({
   caption: {
     fontFamily: theme.fonts.regular,
     fontSize: theme.fontSizes.small,
-    color: theme.colors.darkGray,
   },
   textCenter: {
     textAlign: "center",

@@ -5,6 +5,8 @@ import {
   signOut as firebaseSignOut,
   updateProfile as firebaseUpdateProfile,
   sendPasswordResetEmail,
+  signInWithCredential,
+  GoogleAuthProvider,
 } from "firebase/auth";
 import {
   collection,
@@ -15,7 +17,17 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, db } from "../../services/api/firebase";
+import { auth, db, googleProvider } from "../../services/api/firebase";
+import Constants from "expo-constants";
+
+// Import GoogleSignin conditionally to prevent native module errors
+let GoogleSignin;
+try {
+  const GoogleSigninModule = require("@react-native-google-signin/google-signin");
+  GoogleSignin = GoogleSigninModule.GoogleSignin;
+} catch (error) {
+  console.warn("Google Sign-In module not available:", error.message);
+}
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { storeAuthCredentials } from "../../utils/authUtils";
 
@@ -146,6 +158,225 @@ export const signIn = createAsyncThunk(
   }
 );
 
+export const signInWithGoogle = createAsyncThunk(
+  "auth/signInWithGoogle",
+  async (_, { rejectWithValue }) => {
+    try {
+      // Check if GoogleSignin is available
+      if (!GoogleSignin) {
+        return rejectWithValue(
+          "Google Sign-In is not properly set up. Please follow the setup instructions in GOOGLE_SIGNIN_SETUP.md"
+        );
+      }
+
+      let idToken;
+      let googleUserInfo = null;
+      try {
+        // Attempt configuration immediately before use
+        const googleWebClientId =
+          Constants.expoConfig?.extra?.googleWebClientId;
+        if (!googleWebClientId) {
+          console.warn(
+            "Google Web Client ID not found in app config. Google Sign-In may not work."
+          );
+          return rejectWithValue(
+            "Google Web Client ID missing in configuration."
+          );
+        }
+        try {
+          console.log("Attempting to configure Google Sign-In within thunk...");
+          console.log("Using Google Web Client ID:", googleWebClientId);
+
+          // Configure GoogleSignin with the web client ID
+          GoogleSignin.configure({
+            webClientId: googleWebClientId,
+            offlineAccess: true,
+          });
+
+          await GoogleSignin.hasPlayServices({
+            showPlayServicesUpdateDialog: true,
+          });
+        } catch (playServicesError) {
+          console.error(
+            "Google Play Services Error:",
+            JSON.stringify(playServicesError, null, 2)
+          );
+          return rejectWithValue(
+            `Google Play Services error (code: ${
+              playServicesError.code || "unknown"
+            }). Ensure Google Play Services are up-to-date and configured.`
+          );
+        }
+
+        // Get user ID token
+        // await GoogleSignin.hasPlayServices(); // Check moved above
+        let signInResult;
+        try {
+          console.log("Attempting GoogleSignin.signIn()...");
+          signInResult = await GoogleSignin.signIn();
+          console.log(
+            "signInResult from GoogleSignin.signIn():",
+            JSON.stringify(signInResult, null, 2)
+          );
+          // The idToken is inside the data property
+          idToken = signInResult.data?.idToken;
+
+          // Save Google user info from the sign-in result
+          if (signInResult.data?.user) {
+            googleUserInfo = signInResult.data.user;
+            console.log(
+              "Captured Google user info:",
+              JSON.stringify(googleUserInfo, null, 2)
+            );
+          }
+
+          if (!idToken) {
+            console.error("No ID token found in Google Sign-In result");
+            return rejectWithValue(
+              "Failed to get ID token from Google Sign-In"
+            );
+          }
+        } catch (signInError) {
+          console.error(
+            "!!! Error during GoogleSignin.signIn():",
+            JSON.stringify(signInError, null, 2)
+          );
+          return rejectWithValue(
+            `Google Sign-In failed during signIn(): ${signInError.message}`
+          );
+        }
+      } catch (error) {
+        // Log the full error object for more details
+        console.error(
+          "Google Sign-In native module error:",
+          JSON.stringify(error, null, 2)
+        );
+        console.error("Google Sign-In error code:", error.code); // Log specific error code if available
+        return rejectWithValue(
+          `Google Sign-In failed (code: ${
+            error.code || "unknown"
+          }). Check device logs and GOOGLE_SIGNIN_SETUP.md`
+        );
+      }
+
+      // Create a Google credential with the token
+      console.log("ID Token before signInWithCredential:", idToken);
+
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      console.log(
+        "Credential object after creation:",
+        JSON.stringify(credential, null, 2)
+      );
+
+      // Sign in to Firebase with the Google credential
+      const userCredential = await signInWithCredential(auth, credential);
+      const user = userCredential.user;
+
+      // Check if user document exists
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        // Get Google user info from provider data
+        googleUserInfo = user.providerData?.find(
+          (provider) => provider.providerId === "google.com"
+        );
+
+        // Create new user document if it doesn't exist
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || googleUserInfo?.name || "",
+          photoURL: user.photoURL || googleUserInfo?.photo || null,
+          givenName:
+            googleUserInfo?.givenName ||
+            googleUserInfo?.displayName?.split(" ")?.[0] ||
+            "",
+          familyName:
+            googleUserInfo?.familyName ||
+            googleUserInfo?.displayName?.split(" ")?.[1] ||
+            "",
+          createdAt: serverTimestamp(),
+          lastActive: serverTimestamp(),
+          accountCreationMethod: "google",
+          subscription: {
+            tier: "free",
+            expiryDate: null,
+            platform: null,
+          },
+          preferences: {
+            theme: "default",
+            notifications: true,
+            reminderTime: "20:00",
+          },
+          stats: {
+            totalHabitsCompleted: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            xpPoints: 0,
+            level: 1,
+          },
+          inventory: {
+            avatars: ["default"],
+            themes: ["default"],
+            boosters: [],
+          },
+          friends: [],
+        });
+
+        // Show a notification or alert that the account was created
+        console.log("New user account created with Google Sign-In");
+      } else {
+        // Update last active timestamp
+        await updateDoc(userDocRef, {
+          lastActive: serverTimestamp(),
+        });
+      }
+      // Get user data
+      const freshUserDoc = await getDoc(userDocRef);
+      const docData = freshUserDoc.data();
+
+      // Check if this was a new account creation
+      const isNewAccount = !userDoc.exists();
+
+      // Update Google user info if available (make sure it's in scope)
+      googleUserInfo =
+        user.providerData?.find(
+          (provider) => provider.providerId === "google.com"
+        ) || googleUserInfo;
+
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName:
+          user.displayName ||
+          docData?.displayName ||
+          googleUserInfo?.name ||
+          "",
+        photoURL:
+          user.photoURL || docData?.photoURL || googleUserInfo?.photo || null,
+        givenName: docData?.givenName || googleUserInfo?.givenName || "",
+        familyName: docData?.familyName || googleUserInfo?.familyName || "",
+        ...docData,
+        // Make sure accountCreationMethod is included
+        accountCreationMethod:
+          docData?.accountCreationMethod ||
+          (isNewAccount ? "google" : "unknown"),
+        isNewAccount: isNewAccount, // Add flag to indicate if this was a new account
+        createdAt: docData?.createdAt?.toDate?.()?.toISOString() || null,
+        lastActive: docData?.lastActive?.toDate?.()?.toISOString() || null,
+        updatedAt: docData?.updatedAt?.toDate?.()?.toISOString() || null,
+      };
+
+      return userData;
+    } catch (error) {
+      console.error("Google Sign In Error:", error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const signOut = createAsyncThunk(
   "auth/signOut",
   async (_, { rejectWithValue }) => {
@@ -240,6 +471,10 @@ export const loadUserFromStorage = createAsyncThunk(
           dispatch(fetchUserData());
         }
 
+        const theme = parsedUserData?.preferences?.theme;
+        if (theme) {
+          dispatch(setTheme(theme));
+        }
         return {
           ...parsedUserData,
           bio: parsedUserData.bio || "", // Ensure bio is always present
@@ -340,6 +575,23 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Google Sign In
+    builder
+      .addCase(signInWithGoogle.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(signInWithGoogle.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        AsyncStorage.setItem("user", JSON.stringify(action.payload));
+      })
+      .addCase(signInWithGoogle.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+
     builder
       // Register user
       .addCase(registerUser.pending, (state) => {

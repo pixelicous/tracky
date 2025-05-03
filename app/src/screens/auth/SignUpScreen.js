@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { registerUser } from "../../store/slices/authSlice";
+import { registerUser, signInWithGoogle } from "../../store/slices/authSlice";
 import { Ionicons } from "@expo/vector-icons";
 import { Container, Button, Input } from "../../components/common";
 import { Title, Body, Caption } from "../../components/common/Typography";
@@ -176,6 +176,50 @@ const SignUpScreen = ({ navigation }) => {
             fullWidth
           />
 
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Body style={styles.dividerText}>or</Body>
+            <View style={styles.divider} />
+          </View>
+
+          {Platform.OS === "android" ? (
+            <Button
+              title="Sign up with Google"
+              onPress={() => {
+                dispatch(signInWithGoogle())
+                  .unwrap()
+                  .then((userData) => {
+                    // Check if this was a new account creation
+                    if (userData && userData.isNewAccount) {
+                      // Show a welcome message for new users
+                      alert(
+                        "Welcome! Your account has been created successfully with Google Sign-In."
+                      );
+                    }
+                  })
+                  .catch((error) => {
+                    console.error("Google Sign-In failed:", error);
+                    // Error is already handled in the reducer
+                  });
+              }}
+              style={styles.googleButton}
+              textStyle={styles.googleButtonText}
+              icon={
+                <Ionicons
+                  name="logo-google"
+                  size={20}
+                  color="#DB4437"
+                  style={styles.googleIcon}
+                />
+              }
+              fullWidth
+            />
+          ) : (
+            <Body style={styles.comingSoon}>
+              Sign up with iCloud coming soon
+            </Body>
+          )}
+
           <View style={styles.signinContainer}>
             <Body>Already have an account? </Body>
             <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
@@ -189,6 +233,37 @@ const SignUpScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: theme.spacing.medium,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.lightGray,
+  },
+  dividerText: {
+    marginHorizontal: theme.spacing.medium,
+    color: theme.colors.darkGray,
+  },
+  googleButton: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: theme.colors.lightGray,
+    marginBottom: theme.spacing.medium,
+  },
+  googleButtonText: {
+    color: theme.colors.black,
+  },
+  googleIcon: {
+    marginRight: theme.spacing.small,
+  },
+  comingSoon: {
+    textAlign: "center",
+    color: theme.colors.darkGray,
+    marginBottom: theme.spacing.medium,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.white,
@@ -231,7 +306,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: theme.spacing.medium,
-    marginBottom: theme.spacing.large,
+    marginBottom: theme.spacing.small,
   },
   signinContainer: {
     flexDirection: "row",

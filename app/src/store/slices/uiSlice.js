@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const uiSlice = createSlice({
   name: "ui",
   initialState: {
-    theme: "default",
+    theme: "system",
     notifications: [],
     modalVisible: false,
     currentModal: null,
