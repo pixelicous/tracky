@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 export default {
   expo: {
     name: "Daily Habits Tracker",
@@ -18,14 +16,14 @@ export default {
     assetBundlePatterns: ["**/*"],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.yourcompany.dailyhabitstracker",
+      bundleIdentifier: "com.pixelabs.trackies",
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#FFFFFF",
       },
-      package: "com.yourcompany.dailyhabitstracker",
+      package: "com.pixelabs.trackies",
     },
     web: {
       favicon: "./assets/images/favicon.png",
@@ -38,7 +36,8 @@ export default {
       // firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
       // firebaseAppId: process.env.FIREBASE_APP_ID,
       // firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID,
-      revenuecatApiKey: process.env.REVENUECAT_API_KEY,
+      googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      revenuecatApiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY, // Assuming this also needs the prefix
       eas: {
         projectId: "1747ea17-646e-4a9f-8b24-877804b91453",
       },
